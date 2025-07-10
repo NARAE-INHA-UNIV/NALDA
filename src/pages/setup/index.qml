@@ -9,6 +9,9 @@ Rectangle {
     Layout.fillWidth: true
     color: "#1a1a1a"
 
+    property string connectionStatusText: "연결 대기"
+    property color connectionStatusColor: "#555555"
+
     property var menuItems: [
         { id: 1, name: "보드 연결", page: "SETUP" },
         { id: 2, name: "다음 메뉴", page: "MENU" },
@@ -39,9 +42,13 @@ Rectangle {
         }
     }
 
-        
+
     Rectangle {
         anchors.fill: parent
+        anchors.leftMargin: 0
+        anchors.rightMargin: 0
+        anchors.topMargin: 0
+        anchors.bottomMargin: 0
         color: "#2a2a2a"
         radius: 8
 
@@ -63,11 +70,11 @@ Rectangle {
                     Repeater {
                         id: menuRepeater
                         model: setupComponent.menuItems
-                        
+
                         delegate: Rectangle {
                             id: menuItem
                             required property var modelData
-                            
+
                             Layout.fillWidth: true
                             Layout.preferredHeight: 40
                             Layout.alignment: Qt.AlignHCenter
@@ -91,7 +98,7 @@ Rectangle {
                             }
                         }
                     }
-                    
+
                     // 여백
                     Item {
                         Layout.fillHeight: true
@@ -130,11 +137,11 @@ Rectangle {
                                 font.pixelSize: 14
                                 font.bold: true
                             }
-                            
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 40
-                                
+
                                 ComboBox {
                                     id: portComboBox
                                     Layout.preferredWidth: 300
@@ -144,7 +151,7 @@ Rectangle {
                                     valueRole: "device"
                                     currentIndex: -1
                                 }
-                                
+
                                 Button {
                                     id: refreshButton
                                     Layout.preferredWidth: 40
@@ -154,7 +161,7 @@ Rectangle {
                                         color: refreshButton.hovered ? "#666666" : "#555555"
                                         radius: 6
                                     }
-                                    
+
                                     Image {
                                         source: "../../assets/icons/refresh.svg"
                                         sourceSize.width: 16
@@ -162,7 +169,7 @@ Rectangle {
                                         anchors.centerIn: parent
                                         fillMode: Image.PreserveAspectFit
                                     }
-                                    
+
                                     onClicked: {
                                         console.log("포트 목록 새로고침")
                                         updatePortList()
@@ -191,7 +198,7 @@ Rectangle {
                                 currentIndex: 0
                             }
                         }
-                    
+
                         Button {
                             id: connectButton
                             text: "연결"
@@ -220,9 +227,38 @@ Rectangle {
 
                                 // 선택된 항목의 데이터와 보율을 인자로 전달
                                 initializePortSelect.connect_button_clicked(
-                                    portComboBox.model[portComboBox.currentIndex].device,
-                                    baudRateComboBox.currentValue
-                                )
+                                            portComboBox.model[portComboBox.currentIndex].device,
+                                            baudRateComboBox.currentValue
+                                            )
+                            }
+                        }
+
+                        Rectangle {
+                            id: connectResult
+                            Layout.preferredWidth: 300
+                            Layout.preferredHeight: 40
+                            Layout.topMargin: 10 // 버튼과의 간격 조정
+
+                            color: setupComponent.connectionStatusColor
+                            radius: 8
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 300 }
+                            }
+
+                            Text {
+                                text: setupComponent.connectionStatusText
+                                color: "white"
+                                font.pixelSize: 14
+                                font.weight: 700
+                                anchors.centerIn: parent
+                            }
+                        }
+                        Connections {
+                            target: initializePortSelect
+                            function onConnectionResult(success, message) {
+                                setupComponent.connectionStatusText = message
+                                setupComponent.connectionStatusColor = success ? "#2196F3" : "#F44336" // 파랑(성공), 빨강(실패)
                             }
                         }
                     }
