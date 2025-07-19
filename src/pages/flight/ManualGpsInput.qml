@@ -30,7 +30,7 @@ Rectangle {
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: 5
+            spacing: 5  
             Label { text: "Alt:"; color: "white" }
             TextField { id: altInput; Layout.fillWidth: true; placeholderText: "Altitude"; validator: DoubleValidator{} }
             Label { text: "Hdg:"; color: "white" }
@@ -41,7 +41,7 @@ Rectangle {
             text: "Update GPS Manually"
             onClicked: {
                 if (latInput.text && lonInput.text && altInput.text && hdgInput.text) {
-                    gpsBackend.updateGpsManual(
+                    gcsBackend.updateGpsManual(
                         parseFloat(latInput.text),
                         parseFloat(lonInput.text),
                         parseFloat(altInput.text),

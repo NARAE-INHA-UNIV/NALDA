@@ -17,7 +17,7 @@ class DockableWidget(QWidget):
     #       DockableWidget 내부에서
     #       self.qml_widget.rootContext().setContextProperty("gcsBackend", gcs_backend)를
     #       호출하여 gcsBackend 객체를 해당 QML 컨텍스트에 등록
-    def __init__(self, title: str, qml_path: str, gps_backend: QObject = None, dock_manager: QObject = None, parent=None):
+    def __init__(self, title: str, qml_path: str, gps_backend: QObject = None, dock_manager: QObject = None, pfd_controller: QObject = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
 
@@ -29,6 +29,8 @@ class DockableWidget(QWidget):
             self.qml_widget.rootContext().setContextProperty("gpsBackend", gps_backend)
         if dock_manager:
             self.qml_widget.rootContext().setContextProperty("dockManager", dock_manager)
+        if pfd_controller:
+            self.qml_widget.rootContext().setContextProperty("pfdController", pfd_controller)
 
         self.qml_widget.setSource(QUrl.fromLocalFile(resource_path(qml_path)))
         self.qml_widget.setResizeMode(QQuickWidget.SizeRootObjectToView)
