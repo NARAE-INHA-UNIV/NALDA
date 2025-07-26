@@ -6,7 +6,7 @@ import Qt.labs.platform 1.1 as Platform
 
 ApplicationWindow {
     id: algorithmInputPanel
-    title: "미션 플랜 알고리즘 추가"
+    title: "경로 계획 알고리즘 추가"
     width: 600
     height: 500
     visible: true

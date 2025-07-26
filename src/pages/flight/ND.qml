@@ -20,7 +20,7 @@ Rectangle {
             var newCoordinate = QtPositioning.coordinate(lat, lon);
             map.center = newCoordinate;
             // droneMarker의 coordinate는 pathData의 마지막 요소를 통해 자동으로 업데이트되므로 여기서 직접 설정할 필요가 없다.
-            gpsInfoText.text = `[현재 위치]   위도: ${lat.toFixed(7)}   |   경도: ${lon.toFixed(7)}   |   고도: ${alt.toFixed(2)}m`;
+            gpsInfoText.text = `[현재 위치]   위도: ${lat.toFixed(7)}   |   경도: ${lon.toFixed(7)}   |   방위각: ${hdg.toFixed(2)}°`;
         }
 
         // pathData가 변경되면 MapPolyline과 MapItemView가 자동으로 업데이트하므로, onPathDataChanged 핸들러는 명시적으로 필요하지 않다.
@@ -176,21 +176,37 @@ Rectangle {
                 
                 // 1/6: 확대 버튼
                 Button {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 1
-                    text: "확대"
+                    Layout.preferredWidth: 50
+                    Layout.preferredHeight: 40
+                    
                     background: Rectangle {
-                        color: parent.pressed ? "#388E3C" : "#4CAF50"
+                        color: parent.pressed ? "#555555" : "#404040"
                         radius: 4
+                        border.color: "#666666"
+                        border.width: 1
                     }
                     
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 14
-                        font.bold: true
+                    contentItem: Item {
+                        anchors.fill: parent
+                        
+                        Image {
+                            id: zoomInImage
+                            source: "../../assets/icons/map/zoomIn_btn.png"
+                            fillMode: Image.PreserveAspectFit
+                            anchors.centerIn: parent
+                            width: 32
+                            height: 32
+                            visible: status === Image.Ready
+                        }
+                        
+                        Text {
+                            text: "+"
+                            color: "white"
+                            font.pixelSize: 20
+                            font.bold: true
+                            anchors.centerIn: parent
+                            visible: zoomInImage.status !== Image.Ready
+                        }
                     }
                     
                     onClicked: {
@@ -202,21 +218,37 @@ Rectangle {
                 
                 // 2/6: 축소 버튼
                 Button {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 1
-                    text: "축소"
+                    Layout.preferredWidth: 50
+                    Layout.preferredHeight: 40
+                    
                     background: Rectangle {
-                        color: parent.pressed ? "#F57F17" : "#FFC107"
+                        color: parent.pressed ? "#555555" : "#404040"
                         radius: 4
+                        border.color: "#666666"
+                        border.width: 1
                     }
                     
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 14
-                        font.bold: true
+                    contentItem: Item {
+                        anchors.fill: parent
+                        
+                        Image {
+                            id: zoomOutImage
+                            source: "../../assets/icons/map/zoomOut_btn.png"
+                            fillMode: Image.PreserveAspectFit
+                            anchors.centerIn: parent
+                            width: 32
+                            height: 32
+                            visible: status === Image.Ready
+                        }
+                        
+                        Text {
+                            text: "-"
+                            color: "white"
+                            font.pixelSize: 20
+                            font.bold: true
+                            anchors.centerIn: parent
+                            visible: zoomOutImage.status !== Image.Ready
+                        }
                     }
                     
                     onClicked: {

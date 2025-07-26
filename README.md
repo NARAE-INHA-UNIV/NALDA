@@ -20,6 +20,7 @@ NALDA/
 │   ├── themes/             # 색상 등 테마 관리
 │   ├── main.qml            # QML 진입점
 │   └── styles.qss          # 전역 QML 스타일링
+│   └── sample/             # path planning에 사용할 샘플
 ├── windows/                # 팝업 윈도우 구동 python코드
 ├── main.py                 # 앱 진입점
 └── requirements.txt        # 파이썬 의존성 패키지 목록
@@ -55,8 +56,3 @@ pip install -r requirements.txt
 python main.py
 ```
 
-또는 (현재는 하기 방법)
-
-```bash
-QML_XHR_ALLOW_FILE_READ=1 python3 main.py
-```

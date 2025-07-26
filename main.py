@@ -1,6 +1,9 @@
 import sys
 import os
 
+# QML에서 로컬 파일 읽기를 허용하는 환경변수 설정
+os.environ['QML_XHR_ALLOW_FILE_READ'] = '1'
+
 from PySide6.QtWidgets import QApplication, QMainWindow, QDockWidget
 from PySide6.QtCore import QUrl, Qt, Slot
 from PySide6.QtGui import QFontDatabase, QFont

@@ -301,7 +301,7 @@ Rectangle {
                 
                 // Header
                 Text {
-                    text: "GPS Waypoint 입력 및 Mission Planning"
+                    text: "GPS Waypoint 입력 및 Path Planning"
                     color: "white"
                     font.pixelSize: 24
                     font.bold: true
@@ -743,7 +743,7 @@ Rectangle {
                 // Map section
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 475
+                    Layout.preferredHeight: 420
                     color: "#3a3a3a"
                     radius: 10
                     border.color: "#555555"
@@ -755,7 +755,7 @@ Rectangle {
                         spacing: 15
                     
                     Text {
-                        text: "웨이포인트 / 미션경로 지도"
+                        text: "웨이포인트 / 경로 계획 지도"
                         color: "white"
                         font.pixelSize: 18
                         font.bold: true
@@ -950,20 +950,37 @@ text: model.name.substring(0, 3)
                         spacing: 10
                         
                         Button {
-                            text: "전체 보기"
-                            Layout.preferredWidth: 80
+                            Layout.preferredWidth: 50
+                            Layout.preferredHeight: 40
                             
                             background: Rectangle {
-                                color: parent.pressed ? "#1976D2" : "#2196F3"
+                                color: parent.pressed ? "#555555" : "#404040"
                                 radius: 4
+                                border.color: "#666666"
+                                border.width: 1
                             }
                             
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font.pixelSize: 14
+                            contentItem: Item {
+                                anchors.fill: parent
+                                
+                                Image {
+                                    id: wholeMapImage
+                                    source: "../../assets/icons/map/wholeMap_btn.png"
+                                    fillMode: Image.PreserveAspectFit
+                                    anchors.centerIn: parent
+                                    width: 32
+                                    height: 32
+                                    visible: status === Image.Ready
+                                }
+                                
+                                Text {
+                                    text: "◯"
+                                    color: "white"
+                                    font.pixelSize: 20
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                    visible: wholeMapImage.status !== Image.Ready
+                                }
                             }
                             
                             onClicked: {
@@ -999,21 +1016,38 @@ text: model.name.substring(0, 3)
                             }
                         }
                         
-                        Button {
-                            text: "확대"
+Button {
                             Layout.preferredWidth: 50
+                            Layout.preferredHeight: 40
                             
                             background: Rectangle {
-                                color: parent.pressed ? "#388E3C" : "#4CAF50"
+                                color: parent.pressed ? "#555555" : "#404040"
                                 radius: 4
+                                border.color: "#666666"
+                                border.width: 1
                             }
                             
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font.pixelSize: 14
+                            contentItem: Item {
+                                anchors.fill: parent
+                                
+                                Image {
+                                    id: zoomInImage
+                                    source: "../../assets/icons/map/zoomIn_btn.png"
+                                    fillMode: Image.PreserveAspectFit
+                                    anchors.centerIn: parent
+                                    width: 32
+                                    height: 32
+                                    visible: status === Image.Ready
+                                }
+                                
+                                Text {
+                                    text: "+"
+                                    color: "white"
+                                    font.pixelSize: 20
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                    visible: zoomInImage.status !== Image.Ready
+                                }
                             }
                             
                             onClicked: {
@@ -1023,21 +1057,38 @@ text: model.name.substring(0, 3)
                             }
                         }
                         
-                        Button {
-                            text: "축소"
+Button {
                             Layout.preferredWidth: 50
+                            Layout.preferredHeight: 40
                             
                             background: Rectangle {
-                                color: parent.pressed ? "#F57F17" : "#FFC107"
+                                color: parent.pressed ? "#555555" : "#404040"
                                 radius: 4
+                                border.color: "#666666"
+                                border.width: 1
                             }
                             
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font.pixelSize: 14
+                            contentItem: Item {
+                                anchors.fill: parent
+                                
+                                Image {
+                                    id: zoomOutImage
+                                    source: "../../assets/icons/map/zoomOut_btn.png"
+                                    fillMode: Image.PreserveAspectFit
+                                    anchors.centerIn: parent
+                                    width: 32
+                                    height: 32
+                                    visible: status === Image.Ready
+                                }
+                                
+                                Text {
+                                    text: "-"
+                                    color: "white"
+                                    font.pixelSize: 20
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                    visible: zoomOutImage.status !== Image.Ready
+                                }
                             }
                             
                             onClicked: {
@@ -1065,7 +1116,7 @@ Layout.preferredHeight: 300
                     spacing: 15
                     
                     Text {
-                        text: "미션 경로 알고리즘"
+                        text: "경로 계획 알고리즘"
                         color: "white"
                         font.pixelSize: 18
                         font.bold: true
@@ -1147,7 +1198,7 @@ Layout.preferredHeight: 300
                     }
                     
 Button {
-                        text: "미션 경로 알고리즘 추가"
+                        text: "경로 계획 알고리즘 추가"
                         Layout.preferredWidth: 200
                         Layout.alignment: Qt.AlignHCenter
                         Layout.topMargin: 10

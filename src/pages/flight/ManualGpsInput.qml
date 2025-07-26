@@ -41,7 +41,7 @@ Rectangle {
             text: "Update GPS Manually"
             onClicked: {
                 if (latInput.text && lonInput.text && altInput.text && hdgInput.text) {
-                    gcsBackend.updateGpsManual(
+                    gpsBackend.updateGpsManual(
                         parseFloat(latInput.text),
                         parseFloat(lonInput.text),
                         parseFloat(altInput.text),
