@@ -17,5 +17,5 @@ class SensorManager(QObject):
         # 테스트용 배열 데이터 생성
         timestamp = int(datetime.now().timestamp() * 1000)
         data = random.randint(1, 100)
-        print(f"Python에서 생성한 데이터: {data}")
+        # print(f"Python에서 생성한 데이터: {data}")
         self.dataReady.emit([timestamp, data])

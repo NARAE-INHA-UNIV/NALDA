@@ -7,115 +7,262 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<link rel="stylesheet" href="./uPlot.min.css">
-	<!-- <link rel="stylesheet" href="./custom_style.css"> -->
+	<link rel="stylesheet" href="./custom_style.css">
 </head>
 
 <body>
-	<script src="./uPlot.iife.min.js"></script>
-	<div id="graph-wrap"></div>
-	<!-- <div id="data-info"></div> -->
-
+	<div id="graphs"></div>
+	<script src="./uPlot.iife.js"></script>
 	<script>
+		let mooSync = uPlot.sync("moo");
+
+		let synced = true;
+		let syncedUpDown = true;
+
+		function upDownFilter(type) {
+			return syncedUpDown || (type != "mouseup" && type != "mousedown");
+		}
+
+		const matchSyncKeys = (own, ext) => own == ext;
+
+		const cursorOpts = {
+			lock: true,
+			drag: {
+				setScale: false,
+			},
+			sync: {
+				key: mooSync.key,
+				setSeries: true,
+				match: [matchSyncKeys, matchSyncKeys],
+				filters: {
+					pub: upDownFilter,
+				}
+			},
+		};
+
+		// 그래프에서 마우스가 올라가 있으면 해당값을 표시하고, 없으면 최신값을 표시하는 함수
+		let makeFmt = suffix => (u, v, sidx, didx) => {
+			if (didx == null) {
+				let d = u.data[sidx];
+				v = d[d.length - 1];
+			}
+
+			return v == null ? null : v.toFixed(1) + suffix;
+		};
+
+		// HSL 색상 모델을 HEX로 변환하는 함수
+		function hslToHex(h, s, l) {
+			s /= 100;
+			l /= 100;
+
+			const k = n => (n + h / 30) % 12;
+			const a = s * Math.min(l, 1 - l);
+			const f = n =>
+				Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+
+			return `#${[f(0), f(8), f(4)]
+				.map(x => x.toString(16).padStart(2, '0'))
+				.join('')}`;
+		}
+
+		// 겹치지 않는 HEX 색상을 생성하는 함수
+		function generateHexColors(count) {
+			const colors = [];
+			for (let i = 0; i < count; i++) {
+				const hue = Math.round((360 / count) * i);  // 균등한 Hue
+				colors.push(hslToHex(hue, 70, 50));         // Saturation: 70%, Lightness: 50%
+			}
+			return colors;
+		}
+
 		let testData = [
 			Array.from({ length: 200 }, (_, i) => i),
 			Array.from({ length: 200 }, () => null),
 		];
 
+		let graphMetaData = [];
+		let graphData = [];
+		let graphOptions = [];
+		let setIntervalInstances = []; // setInterval 인스턴스들을 저장할 배열
 
-		// QML에서 데이터를 받을 함수
-		window.receiveData = function (data) {
-			console.log("HTML에서 받은 데이터:", data);
-			console.log("데이터 타입:", typeof data);
-			console.log("배열 길이:", data.length);
-			console.log("첫 번째 요소:", data[0]);
+		const defaultsOpts = {
+			title: "xacc / yacc / zacc (mG)",
+			width: '100%',
+			height: 300,
+			cursor: cursorOpts,
+			select: {
+				show: false,
+			},
+			series: [
+				{
+					label: "time_boot_ms",
+					value: makeFmt('')
+				},
+				{
+					label: "xacc",
+					value: makeFmt(''),
+					stroke: "red",
+				},
+			],
+			scales: {
+				x: {
+					time: false,
+				}
+			}
+		};
+		let timestampField = null;
 
-			testData[0] = testData[0].slice(1).concat([testData[0].at(-1) + 1]);
-			testData[1] = testData[1].slice(1).concat([data[1]]);
+		window.initGraphOpts = function (metaData) {
+			graphOptions = [];
+			graphMetaData = metaData;
 
-			// 데이터 정보를 표시할 DOM 요소에 내용 업데이트
-			var dataInfo = document.getElementById("data-info");
-			dataInfo.innerHTML = "받은 데이터: " + JSON.stringify(data);
+			// 같은 단위끼리 묶기
+			let groupedMetaData = {
+				'#': [], // units이 정의되지 않는 경우 여기에 저장
+			};
+			metaData.forEach(item => {
+				if (!item.plot) return; // plot이 false인 경우도 제외
+				if (item.name.startsWith('time')) { // time으로 시작하는 항목은 제외
+					timestampField = item;
+					return;
+				}
+
+				// units가 정의되지 않은 경우는 따로 분류
+				if (!item.units) {
+					groupedMetaData['#'].push(item);
+					return;
+				}
+
+				// units가 정의된 경우, 해당 단위로 그룹화
+				if (!groupedMetaData[item.units]) {
+					groupedMetaData[item.units] = [];
+				}
+				groupedMetaData[item.units].push(item);
+			});
+
+			// 각 단위별로 그래프 옵션 생성
+			for (let unit in groupedMetaData) {
+				if (groupedMetaData[unit].length === 0) continue;
+
+				// 제목 생성
+				let title = '';
+				if (unit === '#') {
+					title = 'No Units';
+				} else {
+					if (groupedMetaData[unit].length <= 3) {
+						names = groupedMetaData[unit].map(item => item.name);
+						title = names.join(' / ');
+						title += ` (${unit})`;
+					} else {
+						title = `${groupedMetaData[unit].at(0).name} / ... / ${groupedMetaData[unit].at(-1).name} (${unit})`;
+					}
+				}
+
+				// 색상맵 생성
+				let colors = [];
+				if (groupedMetaData[unit].length > 3) {
+					colors = generateHexColors(groupedMetaData[unit].length);
+				} else {
+					colors = ['red', 'green', 'blue'];
+				}
+
+				// series 생성
+				let series = groupedMetaData[unit].map((item, i) => {
+					return {
+						label: item.name,
+						value: makeFmt(''),
+						stroke: colors[i]
+					};
+				});
+				series.unshift({
+					label: timestampField.name,
+					value: makeFmt(''),
+				}); // 타임스탬프 필드를 첫 번째로 추가
+
+				// 옵션 생성
+				let opts = { ...defaultsOpts }; // 기본 옵션 복사
+				opts.title = title; // 제목 설정
+				opts.series = series; // 시리즈 설정
+				graphOptions.push(opts);
+			}
+		};
+
+		window.initGraphData = function (graphOptions) {
+			graphData = [];
+			graphOptions.forEach(opts => {
+				let data = [
+					Array.from({ length: 200 }, (_, i) => i), // x축 데이터
+				];
+				for (let i = 0; i < opts.series.length - 1; i++) {
+					data.push(Array.from({ length: 200 }, () => null)); // y축 데이터
+				}
+				graphData.push(data);
+			});
 		};
 
 		function getSize() {
-			let graphWrapper = document.getElementById('graph-wrap');
+			let graphWrapper = document.getElementById("graphs");
 			return {
 				width: graphWrapper.clientWidth,
 				height: 300
-			}
+			};
 		}
 
-		function makeChart() {
-			let interval = 100;
+		function makeChart(opts, dataIndex, interval = 100) {
+			let uplot = new uPlot(opts, graphData[dataIndex], document.getElementById("graphs"));
 
-			let makeFmt = suffix => (u, v, sidx, didx) => {
-				if (didx == null) {
-					let d = u.data[sidx];
-					v = d[d.length - 1];
-				}
-
-				return v == null ? null : v.toFixed(1) + suffix;
-			};
-
-			const opts = {
-				title: "Fixed length / sliding data slices",
-				width: '100%',
-				height: 300,
-				cursor: {
-					drag: {
-						setScale: false,
-					}
-				},
-				select: {
-					show: false,
-				},
-				series: [
-					{
-						value: (u, v, sidx, didx) => {
-							if (didx == null) {
-								let d = u.data[sidx];
-								v = d[d.length - 1];
-							}
-
-							return v;
-						}
-					},
-					{
-						label: "CPU",
-						scale: "%",
-						value: makeFmt('%'),
-						stroke: "red",
-					},
-
-				],
-				axes: [
-					{},
-					{
-						scale: '%',
-						values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "%"),
-					},
-				],
-				scales: {
-					x: {
-						time: false,
-					}
-				}
-			};
-
-			let uplot1 = new uPlot(opts, testData, document.getElementById('graph-wrap'));
-
-			setInterval(function () {
-				uplot1.setData(testData);
+			let intervalId = setInterval(function () {
+				uplot.setData(graphData[dataIndex]);
 			}, interval);
+			setIntervalInstances.push(intervalId);
 
 			// Resize handling
-			uplot1.setSize(getSize()); // 최초 1회 트리거
+			uplot.setSize(getSize()); // 최초 1회 트리거
 			window.addEventListener("resize", e => {
-				uplot1.setSize(getSize());
+				uplot.setSize(getSize());
 			});
 		}
 
-		makeChart();
+		// QML에서 그래프 metaData를 받고 그래프 옵션을 초기화
+		window.receiveGraphMetaData = function (metaData) {
+			// 기존 setInterval 해제
+			setIntervalInstances.forEach(intervalId => {
+				clearInterval(intervalId);
+			});
+			setIntervalInstances = []; // setInterval 인스턴스 초기화
+
+			document.getElementById('graphs').innerHTML = ''; // 그래프 초기화
+			initGraphOpts(metaData);
+			initGraphData(graphOptions);
+
+			// 그래프 생성
+			graphOptions.forEach((opts, index) => {
+				makeChart(opts, index);
+			});
+		};
+
+		// QML에서 데이터를 받을 함수
+		window.receiveData = function (data) {
+			graphOptions.forEach((opts, graphIndex) => {
+				let seriesNames = opts.series.map(s => s.label);
+
+				let matchIndex = [];
+				graphMetaData.forEach((meta, i) => {
+					if (seriesNames.includes(meta.name)) {
+						matchIndex.push(i);
+					}
+				});
+
+				if (seriesNames[0].startsWith('time') && graphData[graphIndex][0][0] === 0) {
+					graphData[graphIndex][0] = Array.from({ length: 200 }, (_, idx) => data[0] - 200 * 103 + idx * 103);
+					console.log("타임스탬프 데이터 초기화");
+				}
+
+				matchIndex.forEach((i, j) => {
+					graphData[graphIndex][j] = graphData[graphIndex][j].slice(1).concat([data[i]]);
+				});
+			});
+		};
 	</script>
 </body>
 

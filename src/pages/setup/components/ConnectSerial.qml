@@ -108,7 +108,7 @@ ColumnLayout {
                 Layout.preferredWidth: 300
                 Layout.preferredHeight: 40
                 model: [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
-                currentIndex: 0
+                currentIndex: 6
             }
         }
 
@@ -140,9 +140,9 @@ ColumnLayout {
 
                 // 선택된 항목의 데이터와 보율을 인자로 전달
                 initializePortSelect.connect_button_clicked(
-                            portComboBox.model[portComboBox.currentIndex].device,
-                            baudRateComboBox.currentValue
-                            )
+                    portComboBox.model[portComboBox.currentIndex].device,
+                    baudRateComboBox.currentValue
+                )
             }
         }
 
@@ -169,9 +169,9 @@ ColumnLayout {
         }
         Connections {
             target: initializePortSelect
-            function onConnectionResult(success, message) {
+            function onConnectionResult(is_success, message) {
                 connectSerialRoot.connectionStatusText = message
-                connectSerialRoot.connectionStatusColor = success ? "#2196F3" : "#F44336" // 파랑(성공), 빨강(실패)
+                connectSerialRoot.connectionStatusColor = is_success ? "#2196F3" : "#F44336" // 파랑(성공), 빨강(실패)
             }
         }
     }

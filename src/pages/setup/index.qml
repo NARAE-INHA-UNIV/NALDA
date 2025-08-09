@@ -15,7 +15,7 @@ Rectangle {
     property var menuItems: [
         { id: 1, name: "보드 연결", source: "components/ConnectSerial.qml" },
         { id: 2, name: "센서값 시각화", source: "components/SensorGraph.qml" },
-        // { id: 3, name: "자세 시각화", source: "components/ImuGraph.qml" },
+        { id: 3, name: "자세 시각화", source: "components/AttitudeOverview.qml" },
     ]
     property int selectedPageId: 1
 
@@ -50,6 +50,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 color: "#2a2a2a"
+                radius: 8
 
                 Loader {
                     id: pageLoader

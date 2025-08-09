@@ -37,7 +37,7 @@ Rectangle {
 
                 function updateColor() {
                     if (sidebar.selectedPageId === menuItem.modelData.id) {
-                        color = "#1a1a1a"
+                        color = "#3a3a3a"
                     } else {
                         color = "#2a2a2a"
                     }
