@@ -38,9 +38,10 @@ ColumnLayout {
 
         function onMessageUpdated(data) {
             // 자세 업데이트
-            attitudeOverviewRoot.rollAngle = data.roll;
-            attitudeOverviewRoot.pitchAngle = data.pitch;
-            attitudeOverviewRoot.yawAngle = data.yaw;
+            // 30번 ATTITUDE 값은 rad 이므로 변환
+            attitudeOverviewRoot.rollAngle = data.roll*180/3.14592;
+            attitudeOverviewRoot.pitchAngle = data.pitch*180/3.14592;
+            attitudeOverviewRoot.yawAngle = data.yaw*180/3.14592;
 
             // HTML이 완전히 로드된 경우에만 JavaScript 함수 호출
             if (attitudeOverviewRoot.htmlLoaded) {

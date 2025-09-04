@@ -47,8 +47,11 @@
 				let d = u.data[sidx];
 				v = d[d.length - 1];
 			}
+			
+			// 값이 소수이면 소수점 5자리
+			var precision = (v%1)?5:0
 
-			return v == null ? null : v.toFixed(1) + suffix;
+			return v == null ? null : v.toFixed(precision) + suffix;
 		};
 
 		// HSL 색상 모델을 HEX로 변환하는 함수
@@ -168,7 +171,7 @@
 					colors = ['#B1556A', '#6DB178', '#445AB1'];
 				}
 
-				// series 생성
+				// series 생성 (Label)
 				let series = groupedMetaData[unit].map((item, i) => {
 					return {
 						label: item.name,
