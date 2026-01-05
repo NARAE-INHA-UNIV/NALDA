@@ -49,7 +49,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='src/assets/app.ico',
+    icon='frontend/assets/app.ico',
 )
 
 # BUNDLE 객체: EXE를 감싸서 .app 번들을 만듭니다.
@@ -57,6 +57,6 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name='NALDA.app',
-    icon='src/assets/app.ico',
+    icon='frontend/assets/app.ico',
     bundle_identifier=None,
 )

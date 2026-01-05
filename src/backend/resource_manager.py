@@ -8,7 +8,7 @@ class ResourceManager(QObject):
         super().__init__()
         # 추추에 빌드 시 qrc를 사용할 경우를 대비
         # 그렇지 않더라도 리소스 경로를 src 기준으로 일관되게 관리하기 위해
-        self._prefix = resource_path("src")  # if is_dev_mode() else "qrc:/"
+        self._prefix = resource_path("frontend")  # if is_dev_mode() else "qrc:/"
 
     @Slot(str, result=str)
     def getUrl(self, path):

@@ -23,6 +23,11 @@ Rectangle {
             name: "자세 시각화",
             source: "attitude-overview/index.qml"
         },
+        {
+            id: 4,
+            name: "파라미터 설정",
+            source: "parameter-setting/index.qml"
+        }
     ]
     property int selectedMenuId: 1
 

@@ -1,6 +1,3 @@
-[submodule "MiniLink"]
-	path = MiniLink
-	url = https://github.com/NARAE-INHA-UNIV/MiniLink
-[submodule "backend/MiniLink"]
-	path = backend/MiniLink
+[submodule "src/backend/MiniLink"]
+	path = src/backend/MiniLink
 	url = https://github.com/NARAE-INHA-UNIV/MiniLink

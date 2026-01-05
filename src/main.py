@@ -17,7 +17,7 @@ os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'  # QML 스타일 설정 (Mate
 def set_font(app):
     """메인 위젯뿐만 아니라 서브 위젯들도 동일한 폰트를 사용하도록 전역 폰트 설정"""
 
-    font_path = resource_path("src/assets/fonts/PretendardVariable.ttf")
+    font_path = resource_path("frontend/assets/fonts/PretendardVariable.ttf")
     font_id = QFontDatabase.addApplicationFont(font_path)
     if font_id != -1:
         family = QFontDatabase.applicationFontFamilies(font_id)[0]
@@ -34,10 +34,10 @@ def main():
     set_font(app)
 
     # 아이콘 설정 (타이틀, 작업 표시줄)
-    app.setWindowIcon(QIcon(resource_path("src/assets/app.ico")))
+    app.setWindowIcon(QIcon(resource_path("frontend/assets/app.ico")))
 
     # 스플래시 스크린 표시
-    splash_pixmap = QPixmap(resource_path("src/assets/splash.png")).scaled(544, 308, Qt.KeepAspectRatio)
+    splash_pixmap = QPixmap(resource_path("frontend/assets/splash.png")).scaled(544, 308, Qt.KeepAspectRatio)
     splash = QSplashScreen(splash_pixmap)
     splash.show()
     app.processEvents()
