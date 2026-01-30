@@ -79,84 +79,94 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        ColumnLayout {
+        ScrollView {
             Layout.fillHeight: true
-            Layout.fillWidth: true
+            Layout.preferredWidth: 270
+            clip: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-            // 메시지 목록이 비어있을 때만 출력
-            Rectangle {
-                Layout.preferredHeight: 40
-                Layout.preferredWidth: 250
-                radius: 8
-                color: Colors.backgroundTertiary
-                visible: sensorGraphRoot.messageList.length === 0
+            ColumnLayout {
+                width: 250
 
-                Text {
-                    text: "메시지 없음"
-                    color: Colors.textPrimary
-                    font.pixelSize: 14
-                    font.bold: true
-                    anchors.centerIn: parent
-                }
-            }
-
-            Repeater {
-                id: menuRepeater
-                model: sensorGraphRoot.messageList
-
-                delegate: Rectangle {
-                    id: menuItem
-                    required property var modelData
-
-                    Layout.preferredWidth: 250
+                // 메시지 목록이 비어있을 때만 출력
+                Rectangle {
                     Layout.preferredHeight: 40
-                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: 250
                     radius: 8
-                    color: sensorGraphRoot.selectedMessageId === menuItem.modelData.id ? Colors.green : Colors.gray700
-
-                    function updateColor() {
-                        if (sensorGraphRoot.selectedMessageId === menuItem.modelData.id) {
-                            color = Colors.green;
-                        } else {
-                            color = Colors.gray700;
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-
-                        onClicked: handleClick()
-
-                        function handleClick() {
-                            sensorGraphRoot.selectedMessageId = menuItem.modelData.id;
-                            console.log("메시지 ID 변경:", sensorGraphRoot.selectedMessageId);
-
-                            // 시그널 방식으로 메타데이터 요청
-                            setTargetMessage(sensorGraphRoot.selectedMessageId);
-
-                            // 모든 메뉴 아이템의 색상을 강제로 업데이트
-                            for (let i = 0; i < menuRepeater.count; i++) {
-                                menuRepeater.itemAt(i).updateColor();
-                            }
-                        }
-                    }
+                    color: Colors.backgroundTertiary
+                    visible: sensorGraphRoot.messageList.length === 0
 
                     Text {
-                        text: modelData.id + " : " + modelData.name
+                        text: "메시지 없음"
                         color: Colors.textPrimary
-                        font.pixelSize: 16
-                        font.weight: 500
-                        anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: 14
+                        font.bold: true
+                        anchors.centerIn: parent
                     }
                 }
-            }
 
-            // 여백
-            Item {
-                Layout.fillHeight: true
+                Repeater {
+                    id: menuRepeater
+                    model: sensorGraphRoot.messageList
+
+                    delegate: Rectangle {
+                        id: menuItem
+                        required property var modelData
+
+                        Layout.preferredWidth: 250
+                        Layout.preferredHeight: 40
+                        Layout.alignment: Qt.AlignHCenter
+                        radius: 8
+                        color: sensorGraphRoot.selectedMessageId === menuItem.modelData.id ? Colors.green : Colors.gray700
+
+                        function updateColor() {
+                            if (sensorGraphRoot.selectedMessageId === menuItem.modelData.id) {
+                                color = Colors.green;
+                            } else {
+                                color = Colors.gray700;
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+
+                            onClicked: handleClick()
+
+                            function handleClick() {
+                                sensorGraphRoot.selectedMessageId = menuItem.modelData.id;
+                                console.log("메시지 ID 변경:", sensorGraphRoot.selectedMessageId);
+
+                                // 시그널 방식으로 메타데이터 요청
+                                setTargetMessage(sensorGraphRoot.selectedMessageId);
+
+                                // 모든 메뉴 아이템의 색상을 강제로 업데이트
+                                for (let i = 0; i < menuRepeater.count; i++) {
+                                    menuRepeater.itemAt(i).updateColor();
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: modelData.id + " : " + modelData.name
+                            color: Colors.textPrimary
+                            font.pixelSize: 16
+                            font.weight: 500
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                // 여백
+                Item {
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 20
+                }
             }
         }
 
