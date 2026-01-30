@@ -8,13 +8,12 @@ ColumnLayout {
     id: connectSerialRoot
     anchors.fill: parent
 
-    property bool connectionStatusVisible: false
-    property bool connectionStatusIsSuccess: false
-    property bool connectionLoading: false
-
-    property var portList: []
     property string connectionMode: "serial" // "serial" or "udp"
     property string boardType: "custom" // "custom" or "px4"
+    property bool isConnected: false
+    property bool connectionStatusVisible: false
+    property bool connectionLoading: false
+    property var portList: []
 
     Component.onCompleted: {
         // 초기화 작업
@@ -56,6 +55,7 @@ ColumnLayout {
                     rightPadding: 0
                     topPadding: 0
                     bottomPadding: 0
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                     contentItem: Text {
                         text: serialModeButton.text
@@ -85,6 +85,7 @@ ColumnLayout {
                     rightPadding: 0
                     topPadding: 0
                     bottomPadding: 0
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                     contentItem: Text {
                         text: udpModeButton.text
@@ -133,6 +134,7 @@ ColumnLayout {
                         text: "자작 FC"
                         checked: connectSerialRoot.boardType === "custom"
                         Layout.preferredWidth: 150
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                         indicator: Rectangle {
                             width: 18
@@ -170,6 +172,7 @@ ColumnLayout {
                         id: px4Radio
                         text: "PX4"
                         checked: connectSerialRoot.boardType === "px4"
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                         indicator: Rectangle {
                             width: 18
@@ -229,7 +232,7 @@ ColumnLayout {
                         textRole: "device"
                         valueRole: "device"
                         currentIndex: 0
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                         background: Rectangle {
                             color: Colors.gray800
@@ -296,7 +299,7 @@ ColumnLayout {
 
                                 Text {
                                     text: portComboBox.currentIndex >= 0 ? (portComboBox.model[portComboBox.currentIndex]?.device || "") : ""
-                                    color: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading) ? Colors.textPrimary : Colors.gray100
+                                    color: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading) ? Colors.textPrimary : Colors.gray100
                                     font.pixelSize: 14
                                     font.bold: true
                                 }
@@ -328,7 +331,7 @@ ColumnLayout {
                         Layout.alignment: Qt.AlignBottom
                         radius: 6
                         color: refreshButton.enabled ? (refreshMouseArea.containsMouse ? Qt.darker(Colors.gray400, 1.1) : Colors.gray400) : Colors.gray600
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                         Image {
                             source: resourceManager.getUrl("assets/icons/serial/refresh.svg")
@@ -368,7 +371,7 @@ ColumnLayout {
                     Layout.preferredHeight: 40
                     model: [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
                     currentIndex: 6
-                    enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                     background: Rectangle {
                         color: Colors.gray800
@@ -445,7 +448,7 @@ ColumnLayout {
                         text: "127.0.0.1"
                         color: Colors.textPrimary
                         font.pixelSize: 14
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
                     }
                 }
             }
@@ -477,7 +480,7 @@ ColumnLayout {
                         text: "14550"
                         color: Colors.textPrimary
                         font.pixelSize: 14
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
                         validator: IntValidator {
                             bottom: 0
                             top: 65535
@@ -494,10 +497,10 @@ ColumnLayout {
                 id: connectButton
                 Layout.preferredHeight: 50
                 Layout.preferredWidth: 300
-                text: connectSerialRoot.connectionLoading ? (connectSerialRoot.connectionStatusIsSuccess ? "연결 해제 중..." : "연결 중...") : (connectSerialRoot.connectionStatusIsSuccess ? "연결 해제하기" : "연결하기")
+                text: connectSerialRoot.connectionLoading ? (connectSerialRoot.isConnected ? "연결 해제 중..." : "연결 중...") : (connectSerialRoot.isConnected ? "연결 해제하기" : "연결하기")
                 enabled: !connectSerialRoot.connectionLoading // 연결 중일 때 비활성화
                 background: Rectangle {
-                    color: connectButton.enabled ? (connectSerialRoot.connectionStatusIsSuccess ? (mouseArea.containsMouse ? Qt.darker(Colors.red, 1.05) : Colors.red) : (mouseArea.containsMouse ? Qt.darker(Colors.green, 1.05) : Colors.green)) : Colors.gray600
+                    color: connectButton.enabled ? (connectSerialRoot.isConnected ? (mouseArea.containsMouse ? Qt.darker(Colors.red, 1.05) : Colors.red) : (mouseArea.containsMouse ? Qt.darker(Colors.green, 1.05) : Colors.green)) : Colors.gray600
                     radius: 8
                 }
                 contentItem: Text {
@@ -548,14 +551,14 @@ ColumnLayout {
                     running: false
                     repeat: false
                     onTriggered: {
-                        if (connectSerialRoot.connectionStatusIsSuccess) {
+                        if (connectSerialRoot.isConnected) {
                             // 연결 해제
                             if (connectSerialRoot.connectionMode === "serial") {
                                 // Serial 연결 해제
-                                connectSerialRoot.connectionStatusIsSuccess = serialManager.disconnectSerial();
+                                connectSerialRoot.isConnected = !serialManager.disconnectSerial();
                             } else if (connectSerialRoot.connectionMode === "udp") {
                                 // UDP 연결 해제
-                                connectSerialRoot.connectionStatusIsSuccess = serialManager.disconnectUDP();
+                                connectSerialRoot.isConnected = !serialManager.disconnectUDP();
                             }
                             connectSerialRoot.connectionLoading = false; // 로딩 끝
                         } else {
@@ -565,12 +568,12 @@ ColumnLayout {
                                 var is_px4 = connectSerialRoot.boardType === "px4";
                                 var device = portComboBox.model[portComboBox.currentIndex].device;
                                 var baudrate = baudRateComboBox.currentValue;
-                                connectSerialRoot.connectionStatusIsSuccess = serialManager.connectSerial(is_px4, device, baudrate);
+                                connectSerialRoot.isConnected = serialManager.connectSerial(is_px4, device, baudrate);
                             } else if (connectSerialRoot.connectionMode === "udp") {
                                 // UDP 연결
                                 var udp_ip = ipTextInput.text;
                                 var udp_port = parseInt(udpPortTextInput.text);
-                                connectSerialRoot.connectionStatusIsSuccess = serialManager.connectUDP(udp_ip, udp_port);
+                                connectSerialRoot.isConnected = serialManager.connectUDP(udp_ip, udp_port);
                             }
 
                             connectSerialRoot.connectionStatusVisible = true;
@@ -587,15 +590,15 @@ ColumnLayout {
                 visible: connectSerialRoot.connectionStatusVisible
 
                 Image {
-                    source: connectSerialRoot.connectionStatusIsSuccess ? resourceManager.getUrl("assets/icons/serial/check_circle.svg") : resourceManager.getUrl("assets/icons/serial/block.svg")
+                    source: connectSerialRoot.isConnected ? resourceManager.getUrl("assets/icons/serial/check_circle.svg") : resourceManager.getUrl("assets/icons/serial/block.svg")
                     sourceSize.width: 14
                     sourceSize.height: 14
                     fillMode: Image.PreserveAspectFit
                 }
 
                 Text {
-                    text: connectSerialRoot.connectionStatusIsSuccess ? "Connection Successful" : "Connection Failed. Please Try Again."
-                    color: connectSerialRoot.connectionStatusIsSuccess ? Colors.green : Colors.red
+                    text: connectSerialRoot.isConnected ? "Connection Successful" : "Connection Failed. Please Try Again."
+                    color: connectSerialRoot.isConnected ? Colors.green : Colors.red
                     font.pixelSize: 14
                     font.weight: 500
                 }
@@ -616,17 +619,24 @@ ColumnLayout {
     // 현재 선택된 포트와 보율을 가져오는 함수
     function getCurrentConnection() {
         var connection = serialManager.getCurrentConnection() || {};
-        if (connection.port && connection.baudrate) {
-            console.log("현재 연결된 포트:", connection.port);
-            console.log("현재 연결된 보드레이트:", connection.baudrate);
-
+        if (connection.is_serial && connection.port && connection.baudrate) {
             // 연결 상태 표시
             connectSerialRoot.connectionStatusVisible = true;
-            connectSerialRoot.connectionStatusIsSuccess = true;
+            connectSerialRoot.isConnected = true;
 
-            // 연결된 포트와 보드레이트 설정
+            // 연결된 보드, 포트, 보드레이트 설정
+            connectSerialRoot.boardType = connection.is_px4 ? "px4" : "custom";
             portComboBox.currentIndex = connectSerialRoot.portList.findIndex(item => item.device === connection.port);
             baudRateComboBox.currentIndex = baudRateComboBox.model.findIndex(item => item === connection.baudrate);
+        }
+        if (!connection.is_serial && connection.udp_ip && connection.udp_port) {
+            // 연결 상태 표시
+            connectSerialRoot.connectionStatusVisible = true;
+            connectSerialRoot.isConnected = true;
+
+            // 연결된 UDP IP와 Port 설정
+            ipTextInput.text = connection.udp_ip;
+            udpPortTextInput.text = connection.udp_port.toString();
         }
     }
 }

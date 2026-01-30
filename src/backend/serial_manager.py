@@ -5,7 +5,6 @@ import serial.tools.list_ports
 
 from PySide6.QtCore import QObject, Signal, Slot
 from pymavlink import mavutil
-from types import SimpleNamespace
 
 from .MiniLink.MiniLink import MiniLink
 
@@ -30,7 +29,6 @@ class SerialManager(QObject):
 
         # 자작 FC용 MiniLink 객체 및 데이터 저장
         self.minilink = MiniLink()
-        self.message_list = []
 
         # PX4용 MAVLink 객체
         self.mavlink = None
@@ -79,9 +77,6 @@ class SerialManager(QObject):
             self.is_px4 = is_px4
             self.port = device
             self.baudrate = baudrate
-
-            # 메시지 목록 가져오기
-            self.message_list = self.getMessageList()
 
             # 데이터 읽기 스레드 시작
             self.data_reading_thread_stop_flag = threading.Event()
@@ -182,8 +177,9 @@ class SerialManager(QObject):
         """
 
         try:
-            message_id_list = [msg['id'] for msg in self.message_list]
-            message_frame = {msg['id']: msg['fields'] for msg in self.message_list}
+            message_list = self.getMessageList()
+            message_id_list = [msg['id'] for msg in message_list]
+            message_frame = {msg['id']: msg['fields'] for msg in message_list}
 
             current_message_idx = 0
             msg_id = message_id_list[current_message_idx]
@@ -195,8 +191,6 @@ class SerialManager(QObject):
                     msg = {}
                     for key, value in zip(message_frame[msg_id], data):
                         msg[key] = value
-                    msg = SimpleNamespace(**msg)  # dict -> 객체 변환, mavlink 스타일 맞춤
-
                     self.messageUpdated.emit(msg_id, msg)
 
                     # 다음 메시지 선택
@@ -204,7 +198,7 @@ class SerialManager(QObject):
                     msg_id = message_id_list[current_message_idx]
                     self.minilink.chooseMessage(msg_id)
         except Exception as e:
-            print("[Monitor] 연결 끊김 감지!")
+            print("[Data Reading Thread] 연결 끊김 감지!")
             self.port = None
             self.baudrate = None
             return
@@ -219,9 +213,10 @@ class SerialManager(QObject):
                 msg = self.mavlink.recv_match(blocking=True, timeout=1)
                 if msg:
                     msg_id = msg.get_msgId()
-                    self.messageUpdated.emit(msg_id, msg)
+                    msg_dict = msg.to_dict()
+                    self.messageUpdated.emit(msg_id, msg_dict)
         except Exception as e:
-            print("[Monitor] 연결 끊김 감지!")
+            print("[Data Reading Thread] 연결 끊김 감지!")
             self.port = None
             self.baudrate = None
             return
@@ -291,19 +286,35 @@ class SerialManager(QObject):
     @Slot(result=list)
     def getMessageList(self):
         """
-        자작 FC용 MiniLink에서
         현재 연결된 센서의 메시지 목록을 반환합니다.
         """
 
         message_list = []
-        for key, value in self.minilink.getMessageList().items():
-            name = value[0]
-            fields = self.minilink.getMessageColumnNames(key)
-            message_list.append({
-                'id': key,
-                'name': name,
-                'fields': fields
-            })
+
+        if self.is_px4:
+            # PX4 MAVLink 메시지 목록
+            if self.mavlink:
+                mavlink_messages = self.mavlink.messages
+                for msg_name, msg_def in mavlink_messages.items():
+                    if hasattr(msg_def, 'id') and hasattr(msg_def, 'fieldnames'):
+                        message_list.append({
+                            'id': msg_def.id,
+                            'name': msg_name,
+                            'fields': msg_def.fieldnames
+                        })
+        else:
+            # 자작 FC 메시지 목록
+            if self.minilink:
+                for key, value in self.minilink.getMessageList().items():
+                    name = value[0]
+                    fields = self.minilink.getMessageColumnNames(key)
+                    message_list.append({
+                        'id': key,
+                        'name': name,
+                        'fields': fields
+                    })
+
+        message_list = sorted(message_list, key=lambda x: x['id'])
         return message_list
 
     @Slot(int, list, bool)
