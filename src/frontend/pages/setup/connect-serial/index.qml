@@ -537,42 +537,43 @@ ColumnLayout {
                         connectSerialRoot.connectionStatusVisible = false;
 
                         // 0.5초 후에 연결 함수 실행
-                        // UI 업데이트할 시간 확보
+                        // UI 업데이트 시간을 확보하기 위함
                         connectionTimer.start();
                     }
                 }
 
                 Timer {
                     id: connectionTimer
-                    interval: 50
+                    interval: 500
                     running: false
                     repeat: false
                     onTriggered: {
                         if (connectSerialRoot.connectionStatusIsSuccess) {
                             // 연결 해제
-                            var res = serialManager.disconnectSerial();
-                            if (res) {
-                                console.log("연결이 해제되었습니다.");
-                                connectSerialRoot.connectionStatusIsSuccess = false;
-                            } else {
-                                console.log("연결 해제에 실패했습니다.");
+                            if (connectSerialRoot.connectionMode === "serial") {
+                                // Serial 연결 해제
+                                connectSerialRoot.connectionStatusIsSuccess = serialManager.disconnectSerial();
+                            } else if (connectSerialRoot.connectionMode === "udp") {
+                                // UDP 연결 해제
+                                connectSerialRoot.connectionStatusIsSuccess = serialManager.disconnectUDP();
                             }
                             connectSerialRoot.connectionLoading = false; // 로딩 끝
                         } else {
-                            var is_success = false;
-
+                            // 연결
                             if (connectSerialRoot.connectionMode === "serial") {
-                                // 선택된 항목의 데이터와 보율을 인자로 전달
-                                is_success = serialManager.connectSerial(portComboBox.model[portComboBox.currentIndex].device, baudRateComboBox.currentValue);
+                                // Serial 연결
+                                var is_px4 = connectSerialRoot.boardType === "px4";
+                                var device = portComboBox.model[portComboBox.currentIndex].device;
+                                var baudrate = baudRateComboBox.currentValue;
+                                connectSerialRoot.connectionStatusIsSuccess = serialManager.connectSerial(is_px4, device, baudrate);
                             } else if (connectSerialRoot.connectionMode === "udp") {
-                                // UDP 연결 (현재 백엔드 미구현)
-                                console.log("UDP Connecting to " + ipTextInput.text + ":" + udpPortTextInput.text);
-                                console.log("UDP connection not implemented in backend yet.");
-                                is_success = serialManager.connectUDP(ipTextInput.text, parseInt(udpPortTextInput.text));
+                                // UDP 연결
+                                var udp_ip = ipTextInput.text;
+                                var udp_port = parseInt(udpPortTextInput.text);
+                                connectSerialRoot.connectionStatusIsSuccess = serialManager.connectUDP(udp_ip, udp_port);
                             }
 
                             connectSerialRoot.connectionStatusVisible = true;
-                            connectSerialRoot.connectionStatusIsSuccess = is_success;
                             connectSerialRoot.connectionLoading = false; // 로딩 끝
                         }
                     }
