@@ -8,12 +8,12 @@ ColumnLayout {
     id: connectSerialRoot
     anchors.fill: parent
 
-    property bool connectionStatusVisible: false
-    property bool connectionStatusIsSuccess: false
-    property bool connectionLoading: false
-
-    property var portList: []
     property string connectionMode: "serial" // "serial" or "udp"
+    property string boardType: "custom" // "custom" or "px4"
+    property bool isConnected: false
+    property bool connectionStatusVisible: false
+    property bool connectionLoading: false
+    property var portList: []
 
     Component.onCompleted: {
         // 초기화 작업
@@ -34,61 +34,76 @@ ColumnLayout {
         Layout.topMargin: 20
 
         // 연결 모드 선택
-        RowLayout {
-            spacing: 12
-            Layout.fillWidth: true
+        Rectangle {
+            color: Colors.gray700
+            Layout.preferredWidth: 300
+            Layout.preferredHeight: 40
+            radius: 8
 
-            Button {
-                id: serialModeButton
-                text: "Serial"
-                Layout.preferredWidth: 145
-                Layout.preferredHeight: 40
-                
-                contentItem: Text {
-                    text: serialModeButton.text
-                    color: connectSerialRoot.connectionMode === "serial" ? Colors.textPrimary : Colors.gray300
-                    font.pixelSize: 14
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+            RowLayout {
+                spacing: 4
+                anchors.fill: parent
+                anchors.leftMargin: 5
+                anchors.rightMargin: 5
+
+                Button {
+                    id: serialModeButton
+                    text: "Serial"
+                    Layout.preferredWidth: 143
+                    Layout.fillHeight: true
+                    leftPadding: 0
+                    rightPadding: 0
+                    topPadding: 0
+                    bottomPadding: 0
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+
+                    contentItem: Text {
+                        text: serialModeButton.text
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    background: Rectangle {
+                        color: connectSerialRoot.connectionMode === "serial" ? Colors.gray800 : "transparent"
+                        radius: 6
+                    }
+
+                    onClicked: {
+                        connectSerialRoot.connectionMode = "serial";
+                    }
                 }
 
-                background: Rectangle {
-                    color: connectSerialRoot.connectionMode === "serial" ? Colors.primary : Colors.gray700
-                    radius: 8
-                    border.width: connectSerialRoot.connectionMode === "serial" ? 0 : 1
-                    border.color: Colors.gray600
-                }
+                Button {
+                    id: udpModeButton
+                    text: "UDP"
+                    Layout.preferredWidth: 143
+                    Layout.fillHeight: true
+                    leftPadding: 0
+                    rightPadding: 0
+                    topPadding: 0
+                    bottomPadding: 0
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
-                onClicked: {
-                    connectSerialRoot.connectionMode = "serial"
-                }
-            }
+                    contentItem: Text {
+                        text: udpModeButton.text
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
 
-            Button {
-                id: udpModeButton
-                text: "IP"
-                Layout.preferredWidth: 145
-                Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: connectSerialRoot.connectionMode === "udp" ? Colors.gray800 : "transparent"
+                        radius: 6
+                    }
 
-                contentItem: Text {
-                    text: udpModeButton.text
-                    color: connectSerialRoot.connectionMode === "udp" ? Colors.textPrimary : Colors.gray300
-                    font.pixelSize: 14
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                background: Rectangle {
-                    color: connectSerialRoot.connectionMode === "udp" ? Colors.primary : Colors.gray700
-                    radius: 8
-                    border.width: connectSerialRoot.connectionMode === "udp" ? 0 : 1
-                    border.color: Colors.gray600
-                }
-
-                onClicked: {
-                    connectSerialRoot.connectionMode = "udp"
+                    onClicked: {
+                        connectSerialRoot.connectionMode = "udp";
+                    }
                 }
             }
         }
@@ -99,6 +114,99 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 20
             Layout.topMargin: 20
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+                Layout.bottomMargin: -8
+
+                Text {
+                    text: "Board"
+                    color: Colors.gray100
+                    font.pixelSize: 14
+                    font.bold: true
+                }
+
+                RowLayout {
+
+                    RadioButton {
+                        id: customFCRadio
+                        text: "자작 FC"
+                        checked: connectSerialRoot.boardType === "custom"
+                        Layout.preferredWidth: 150
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+
+                        indicator: Rectangle {
+                            width: 18
+                            height: 18
+                            radius: 9
+                            border.width: 2
+                            border.color: Colors.gray400
+                            color: "transparent"
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Rectangle {
+                                width: 10
+                                height: 10
+                                radius: 5
+                                anchors.centerIn: parent
+                                color: Colors.gray400
+                                visible: customFCRadio.checked
+                            }
+                        }
+
+                        contentItem: Text {
+                            text: customFCRadio.text
+                            color: Colors.textPrimary
+                            font.pixelSize: 14
+                            leftPadding: customFCRadio.indicator.width + 8
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        onClicked: {
+                            connectSerialRoot.boardType = "custom";
+                        }
+                    }
+
+                    RadioButton {
+                        id: px4Radio
+                        text: "PX4"
+                        checked: connectSerialRoot.boardType === "px4"
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+
+                        indicator: Rectangle {
+                            width: 18
+                            height: 18
+                            radius: 9
+                            border.width: 2
+                            border.color: Colors.gray400
+                            color: "transparent"
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Rectangle {
+                                width: 10
+                                height: 10
+                                radius: 5
+                                anchors.centerIn: parent
+                                color: Colors.gray400
+                                visible: px4Radio.checked
+                            }
+                        }
+
+                        contentItem: Text {
+                            text: px4Radio.text
+                            color: Colors.textPrimary
+                            font.pixelSize: 14
+                            leftPadding: px4Radio.indicator.width + 8
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        onClicked: {
+                            connectSerialRoot.boardType = "px4";
+                        }
+                    }
+                }
+            }
 
             // 포트 선택
             ColumnLayout {
@@ -124,7 +232,21 @@ ColumnLayout {
                         textRole: "device"
                         valueRole: "device"
                         currentIndex: 0
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+
+                        background: Rectangle {
+                            color: Colors.gray800
+                            radius: 4
+                            border.width: 1
+                            border.color: portComboBoxMouseArea.containsMouse ? Colors.gray100 : Colors.gray400
+                        }
+
+                        MouseArea {
+                            id: portComboBoxMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onPressed: mouse.accepted = false
+                        }
 
                         delegate: ItemDelegate {
                             id: delegateItem
@@ -177,7 +299,7 @@ ColumnLayout {
 
                                 Text {
                                     text: portComboBox.currentIndex >= 0 ? (portComboBox.model[portComboBox.currentIndex]?.device || "") : ""
-                                    color: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading) ? Colors.textPrimary : Colors.gray100
+                                    color: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading) ? Colors.textPrimary : Colors.gray100
                                     font.pixelSize: 14
                                     font.bold: true
                                 }
@@ -209,7 +331,7 @@ ColumnLayout {
                         Layout.alignment: Qt.AlignBottom
                         radius: 6
                         color: refreshButton.enabled ? (refreshMouseArea.containsMouse ? Qt.darker(Colors.gray400, 1.1) : Colors.gray400) : Colors.gray600
-                        enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
 
                         Image {
                             source: resourceManager.getUrl("assets/icons/serial/refresh.svg")
@@ -234,7 +356,6 @@ ColumnLayout {
 
             // 보율 선택
             ColumnLayout {
-                Layout.topMargin: 20
                 spacing: 8
 
                 Text {
@@ -250,7 +371,45 @@ ColumnLayout {
                     Layout.preferredHeight: 40
                     model: [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
                     currentIndex: 6
-                    enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
+                    enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+
+                    background: Rectangle {
+                        color: Colors.gray800
+                        radius: 4
+                        border.width: 1
+                        border.color: baudRateMouseArea.containsMouse ? Colors.gray100 : Colors.gray400
+                    }
+
+                    MouseArea {
+                        id: baudRateMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onPressed: mouse.accepted = false
+                    }
+
+                    contentItem: Text {
+                        text: baudRateComboBox.currentValue
+                        color: baudRateComboBox.enabled ? Colors.textPrimary : Colors.gray400
+                        font.pixelSize: 14
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: 12
+                    }
+
+                    delegate: ItemDelegate {
+                        width: parent.width
+                        height: 40
+
+                        contentItem: Text {
+                            text: modelData
+                            color: Colors.textPrimary
+                            font.pixelSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        background: Rectangle {
+                            color: parent.hovered ? Colors.gray500 : "transparent"
+                        }
+                    }
                 }
             }
         }
@@ -259,8 +418,8 @@ ColumnLayout {
         ColumnLayout {
             visible: connectSerialRoot.connectionMode === "udp"
             Layout.fillWidth: true
-            spacing: 20
             Layout.topMargin: 20
+            spacing: 20
 
             // IP 입력
             ColumnLayout {
@@ -273,21 +432,23 @@ ColumnLayout {
                     font.bold: true
                 }
 
-                TextField {
-                    id: ipTextField
+                Rectangle {
                     Layout.preferredWidth: 300
                     Layout.preferredHeight: 40
-                    placeholderText: "e.g. 192.168.0.10"
-                    text: "127.0.0.1" // 기본값
-                    color: Colors.textPrimary
-                    font.pixelSize: 14
-                    enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
-                    
-                    background: Rectangle {
-                        color: Colors.gray700
-                        radius: 4
-                        border.width: ipTextField.activeFocus ? 2 : 1
-                        border.color: ipTextField.activeFocus ? Colors.primary : Colors.gray600
+                    color: Colors.gray800
+                    radius: 4
+                    border.color: ipTextInput.activeFocus ? Colors.gray100 : Colors.gray400
+
+                    TextInput {
+                        id: ipTextInput
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        verticalAlignment: TextInput.AlignVCenter
+                        text: "127.0.0.1"
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
                     }
                 }
             }
@@ -303,23 +464,28 @@ ColumnLayout {
                     font.bold: true
                 }
 
-                TextField {
-                    id: udpPortTextField
+                Rectangle {
                     Layout.preferredWidth: 300
                     Layout.preferredHeight: 40
-                    placeholderText: "e.g. 14550"
-                    text: "14550" // 기본값
-                    color: Colors.textPrimary
-                    font.pixelSize: 14
-                    enabled: !(connectSerialRoot.connectionStatusIsSuccess || connectSerialRoot.connectionLoading)
-                    
-                    background: Rectangle {
-                        color: Colors.gray700
-                        radius: 4
-                        border.width: udpPortTextField.activeFocus ? 2 : 1
-                        border.color: udpPortTextField.activeFocus ? Colors.primary : Colors.gray600
+                    color: Colors.gray800
+                    radius: 4
+                    border.color: udpPortTextInput.activeFocus ? Colors.gray100 : Colors.gray400
+
+                    TextInput {
+                        id: udpPortTextInput
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        verticalAlignment: TextInput.AlignVCenter
+                        text: "14550"
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        enabled: !(connectSerialRoot.isConnected || connectSerialRoot.connectionLoading)
+                        validator: IntValidator {
+                            bottom: 0
+                            top: 65535
+                        }
                     }
-                    validator: IntValidator { bottom: 0; top: 65535 }
                 }
             }
         }
@@ -331,10 +497,10 @@ ColumnLayout {
                 id: connectButton
                 Layout.preferredHeight: 50
                 Layout.preferredWidth: 300
-                text: connectSerialRoot.connectionLoading ? (connectSerialRoot.connectionStatusIsSuccess ? "연결 해제 중..." : "연결 중...") : (connectSerialRoot.connectionStatusIsSuccess ? "연결 해제하기" : "연결하기")
+                text: connectSerialRoot.connectionLoading ? (connectSerialRoot.isConnected ? "연결 해제 중..." : "연결 중...") : (connectSerialRoot.isConnected ? "연결 해제하기" : "연결하기")
                 enabled: !connectSerialRoot.connectionLoading // 연결 중일 때 비활성화
                 background: Rectangle {
-                    color: connectButton.enabled ? (connectSerialRoot.connectionStatusIsSuccess ? (mouseArea.containsMouse ? Qt.darker(Colors.red, 1.05) : Colors.red) : (mouseArea.containsMouse ? Qt.darker(Colors.green, 1.05) : Colors.green)) : Colors.gray600
+                    color: connectButton.enabled ? (connectSerialRoot.isConnected ? (mouseArea.containsMouse ? Qt.darker(Colors.red, 1.05) : Colors.red) : (mouseArea.containsMouse ? Qt.darker(Colors.green, 1.05) : Colors.green)) : Colors.gray600
                     radius: 8
                 }
                 contentItem: Text {
@@ -359,11 +525,11 @@ ColumnLayout {
                                 return;
                             }
                         } else if (connectSerialRoot.connectionMode === "udp") {
-                             if (ipTextField.text === "") {
+                            if (ipTextInput.text === "") {
                                 console.log("IP 주소를 입력해주세요.");
                                 return;
                             }
-                            if (udpPortTextField.text === "") {
+                            if (udpPortTextInput.text === "") {
                                 console.log("Port를 입력해주세요.");
                                 return;
                             }
@@ -374,43 +540,43 @@ ColumnLayout {
                         connectSerialRoot.connectionStatusVisible = false;
 
                         // 0.5초 후에 연결 함수 실행
-                        // UI 업데이트할 시간 확보
+                        // UI 업데이트 시간을 확보하기 위함
                         connectionTimer.start();
                     }
                 }
 
                 Timer {
                     id: connectionTimer
-                    interval: 50
+                    interval: 500
                     running: false
                     repeat: false
                     onTriggered: {
-                        if (connectSerialRoot.connectionStatusIsSuccess) {
+                        if (connectSerialRoot.isConnected) {
                             // 연결 해제
-                            var res = serialManager.disconnectSerial();
-                            if (res) {
-                                console.log("연결이 해제되었습니다.");
-                                connectSerialRoot.connectionStatusIsSuccess = false;
-                            } else {
-                                console.log("연결 해제에 실패했습니다.");
+                            if (connectSerialRoot.connectionMode === "serial") {
+                                // Serial 연결 해제
+                                connectSerialRoot.isConnected = !serialManager.disconnectSerial();
+                            } else if (connectSerialRoot.connectionMode === "udp") {
+                                // UDP 연결 해제
+                                connectSerialRoot.isConnected = !serialManager.disconnectUDP();
                             }
                             connectSerialRoot.connectionLoading = false; // 로딩 끝
                         } else {
-                            var is_success = false;
-                            
+                            // 연결
                             if (connectSerialRoot.connectionMode === "serial") {
-                                // 선택된 항목의 데이터와 보율을 인자로 전달
-                                is_success = serialManager.connectSerial(portComboBox.model[portComboBox.currentIndex].device, baudRateComboBox.currentValue);
+                                // Serial 연결
+                                var is_px4 = connectSerialRoot.boardType === "px4";
+                                var device = portComboBox.model[portComboBox.currentIndex].device;
+                                var baudrate = baudRateComboBox.currentValue;
+                                connectSerialRoot.isConnected = serialManager.connectSerial(is_px4, device, baudrate);
                             } else if (connectSerialRoot.connectionMode === "udp") {
-                                // UDP 연결 (현재 백엔드 미구현)
-                                console.log("UDP Connecting to " + ipTextField.text + ":" + udpPortTextField.text);
-                                console.log("UDP connection not implemented in backend yet.");
-                                is_success = false; 
-                                // TODO: Implement UDP connection in backend
+                                // UDP 연결
+                                var udp_ip = ipTextInput.text;
+                                var udp_port = parseInt(udpPortTextInput.text);
+                                connectSerialRoot.isConnected = serialManager.connectUDP(udp_ip, udp_port);
                             }
 
                             connectSerialRoot.connectionStatusVisible = true;
-                            connectSerialRoot.connectionStatusIsSuccess = is_success;
                             connectSerialRoot.connectionLoading = false; // 로딩 끝
                         }
                     }
@@ -424,15 +590,15 @@ ColumnLayout {
                 visible: connectSerialRoot.connectionStatusVisible
 
                 Image {
-                    source: connectSerialRoot.connectionStatusIsSuccess ? resourceManager.getUrl("assets/icons/serial/check_circle.svg") : resourceManager.getUrl("assets/icons/serial/block.svg")
+                    source: connectSerialRoot.isConnected ? resourceManager.getUrl("assets/icons/serial/check_circle.svg") : resourceManager.getUrl("assets/icons/serial/block.svg")
                     sourceSize.width: 14
                     sourceSize.height: 14
                     fillMode: Image.PreserveAspectFit
                 }
 
                 Text {
-                    text: connectSerialRoot.connectionStatusIsSuccess ? "Connection Successful" : "Connection Failed. Please Try Again."
-                    color: connectSerialRoot.connectionStatusIsSuccess ? Colors.green : Colors.red
+                    text: connectSerialRoot.isConnected ? "Connection Successful" : "Connection Failed. Please Try Again."
+                    color: connectSerialRoot.isConnected ? Colors.green : Colors.red
                     font.pixelSize: 14
                     font.weight: 500
                 }
@@ -453,17 +619,24 @@ ColumnLayout {
     // 현재 선택된 포트와 보율을 가져오는 함수
     function getCurrentConnection() {
         var connection = serialManager.getCurrentConnection() || {};
-        if (connection.port && connection.baudrate) {
-            console.log("현재 연결된 포트:", connection.port);
-            console.log("현재 연결된 보드레이트:", connection.baudrate);
-
+        if (connection.is_serial && connection.port && connection.baudrate) {
             // 연결 상태 표시
             connectSerialRoot.connectionStatusVisible = true;
-            connectSerialRoot.connectionStatusIsSuccess = true;
+            connectSerialRoot.isConnected = true;
 
-            // 연결된 포트와 보드레이트 설정
+            // 연결된 보드, 포트, 보드레이트 설정
+            connectSerialRoot.boardType = connection.is_px4 ? "px4" : "custom";
             portComboBox.currentIndex = connectSerialRoot.portList.findIndex(item => item.device === connection.port);
             baudRateComboBox.currentIndex = baudRateComboBox.model.findIndex(item => item === connection.baudrate);
+        }
+        if (!connection.is_serial && connection.udp_ip && connection.udp_port) {
+            // 연결 상태 표시
+            connectSerialRoot.connectionStatusVisible = true;
+            connectSerialRoot.isConnected = true;
+
+            // 연결된 UDP IP와 Port 설정
+            ipTextInput.text = connection.udp_ip;
+            udpPortTextInput.text = connection.udp_port.toString();
         }
     }
 }
