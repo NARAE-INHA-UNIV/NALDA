@@ -202,6 +202,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Layout.maximumWidth: parent.width
                     wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
                 }
 
                 // 테이블 뷰
@@ -341,7 +342,7 @@ ColumnLayout {
                                 border.width: 1
 
                                 Text {
-                                    text: (tableRow.index !== undefined && sensorGraphRoot.selectedMessageValues.length > tableRow.index) ? sensorGraphRoot.selectedMessageValues[tableRow.index].toString() : ""
+                                    text: (tableRow.index !== undefined && sensorGraphRoot.selectedMessageValues[tableRow.index] !== undefined) ? sensorGraphRoot.selectedMessageValues[tableRow.index].toString() : ""
                                     color: Colors.textPrimary
                                     font.pixelSize: 12
                                     anchors.left: parent.left
@@ -400,18 +401,7 @@ ColumnLayout {
 
                                     onCheckedChanged: {
                                         sensorGraphRoot.messageFrame[tableRow.index].plot = checked;
-
-                                        if (sensorGraphRoot.htmlLoaded) {
-                                            var hz = serialManager.getMessageHz(sensorGraphRoot.selectedMessageId);
-                                            var dataToSend = {
-                                                fields: sensorGraphRoot.messageFrame,
-                                                hz: hz
-                                            };
-                                            var jsCode = "window.receiveGraphMetaData(" + JSON.stringify(dataToSend) + ");";
-                                            webView.runJavaScript(jsCode);
-                                        } else {
-                                            console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
-                                        }
+                                        initGraph();
                                     }
                                 }
                             }
@@ -434,7 +424,6 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 450 * (new Set(sensorGraphRoot.messageFrame.slice(1).map(f => f.units)).size) // 그래프 개수
                     Layout.topMargin: 30
-                    visible: sensorGraphRoot.messageFrame.some(f => f.name == 'time_usec' || f.name == 'time_boot_ms') // 시간 필드가 있을 때만 표시
 
                     WebEngineView {
                         id: webView
@@ -481,23 +470,25 @@ ColumnLayout {
     }
 
     function setTargetMessage(msgId) {
-        console.log("setTargetMessage 호출:", msgId);
         var metaData = sensorGraphManager.setTargetMessage(msgId);
         sensorGraphRoot.selectedMessageName = metaData.name;
         sensorGraphRoot.selectedMessageDesc = metaData.description;
         sensorGraphRoot.messageFrame = metaData.fields;
+        initGraph();
+    }
 
+    function initGraph() {
         if (sensorGraphRoot.htmlLoaded) {
             // 메시지의 Hz 정보 가져오기
-            var hz = serialManager.getMessageHz(msgId);
+            var hz = serialManager.getMessageHz(sensorGraphRoot.selectedMessageId);
             var dataToSend = {
-                fields: metaData.fields,
+                fields: sensorGraphRoot.messageFrame,
                 hz: hz
             };
             var jsCode = `window.receiveGraphMetaData(${JSON.stringify(dataToSend)});`;
             webView.runJavaScript(jsCode);
         } else {
-            console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
+            console.log("HTML이 아직 로드되지 않았습니다.");
         }
     }
 }
