@@ -47,9 +47,9 @@
 				let d = u.data[sidx];
 				v = d[d.length - 1];
 			}
-			
+
 			// 값이 소수이면 소수점 5자리
-			var precision = (v%1)?5:0
+			var precision = (v % 1) ? 5 : 0
 
 			return v == null ? null : v.toFixed(precision) + suffix;
 		};
@@ -88,6 +88,7 @@
 		let graphData = [];
 		let graphOptions = [];
 		let setIntervalInstances = []; // setInterval 인스턴스들을 저장할 배열
+		let updateInterval = 100; // 그래프 업데이트 간격 (밀리초)
 
 		const defaultsOpts = {
 			title: "xacc / yacc / zacc (mG)",
@@ -194,9 +195,13 @@
 		};
 
 		// 그래프 데이터 초기화 함수
-		window.initGraphData = function (graphOptions) {
+		window.initGraphData = function (graphOptions, hz = 10) {
 			graphData = [];
+			// Hz를 밀리초 간격으로 변환 (예: 10Hz = 100ms)
+			updateInterval = hz > 0 ? 1000 / hz : 100;
+
 			graphOptions.forEach(opts => {
+				// 초기 타임스탬프를 Hz 기반 간격으로 생성
 				let data = [
 					Array.from({ length: 200 }, (_, i) => i), // x축 데이터
 				];
@@ -233,7 +238,11 @@
 		}
 
 		// QML에서 그래프 metaData를 받고 그래프 옵션을 초기화
-		window.receiveGraphMetaData = function (metaData) {
+		window.receiveGraphMetaData = function (data) {
+			// data는 {fields: [...], hz: number} 형태
+			let metaData = data.fields;
+			let hz = data.hz || 10; // Hz가 없으면 기본값 10Hz
+
 			// 기존 setInterval 해제
 			setIntervalInstances.forEach(intervalId => {
 				clearInterval(intervalId);
@@ -243,7 +252,7 @@
 			// 그래프 초기화
 			document.getElementById('graphs').innerHTML = '';
 			initGraphOpts(metaData);
-			initGraphData(graphOptions);
+			initGraphData(graphOptions, hz);
 
 			// 그래프 생성
 			graphOptions.forEach((opts, index) => {
@@ -257,11 +266,13 @@
 				// 축 이름 추출 (ex: time_boot_ms, xacc, yacc, zacc)
 				let seriesNames = opts.series.map(s => s.label);
 
-				// 타임스탬프 초깃값은 0~199로 임의로 설정된 값임
-				// 자연스러운 그래프 움직임을 위해 첫 출력 시 103ms 간격으로 변경
+				// 타임스탬프 초기화: 첫 데이터 수신 시 실제 간격 기반으로 재설정
 				if (seriesNames[0].startsWith('time') && graphData[graphIndex][0][0] === 0) {
 					let timestampName = seriesNames[0];
-					graphData[graphIndex][0] = Array.from({ length: 200 }, (_, idx) => data[timestampName] - 200 * 103 + idx * 103);
+					let currentTimestamp = data[timestampName];
+
+					// 현재 타임스탬프를 기준으로 과거 값들 재생성
+					graphData[graphIndex][0] = Array.from({ length: 200 }, (_, idx) => currentTimestamp - (200 - idx - 1) * updateInterval);
 				}
 
 				// 맨 앞 데이터는 삭제하고 맨 뒤에 새 데이터 추가

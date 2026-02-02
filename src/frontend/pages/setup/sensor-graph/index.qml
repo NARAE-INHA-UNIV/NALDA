@@ -224,7 +224,7 @@ ColumnLayout {
                             spacing: 0
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -240,7 +240,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -256,7 +256,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -272,7 +272,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -288,7 +288,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -319,7 +319,7 @@ ColumnLayout {
                             spacing: 0
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -334,7 +334,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -344,12 +344,18 @@ ColumnLayout {
                                     text: (tableRow.index !== undefined && sensorGraphRoot.selectedMessageValues.length > tableRow.index) ? sensorGraphRoot.selectedMessageValues[tableRow.index].toString() : ""
                                     color: Colors.textPrimary
                                     font.pixelSize: 12
-                                    anchors.centerIn: parent
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 5
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 5
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
                                 }
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -364,7 +370,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -379,7 +385,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -396,7 +402,12 @@ ColumnLayout {
                                         sensorGraphRoot.messageFrame[tableRow.index].plot = checked;
 
                                         if (sensorGraphRoot.htmlLoaded) {
-                                            var jsCode = "window.receiveGraphMetaData(" + JSON.stringify(sensorGraphRoot.messageFrame) + ");";
+                                            var hz = serialManager.getMessageHz(sensorGraphRoot.selectedMessageId);
+                                            var dataToSend = {
+                                                fields: sensorGraphRoot.messageFrame,
+                                                hz: hz
+                                            };
+                                            var jsCode = "window.receiveGraphMetaData(" + JSON.stringify(dataToSend) + ");";
                                             webView.runJavaScript(jsCode);
                                         } else {
                                             console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
@@ -408,11 +419,22 @@ ColumnLayout {
                     }
                 }
 
+                // 업데이트 주기 표시
+                Text {
+                    text: "rate: " + (serialManager.getMessageHz(sensorGraphRoot.selectedMessageId).toFixed(2)) + " Hz"
+                    color: Colors.textPrimary
+                    font.pixelSize: 14
+                    Layout.fillWidth: true
+                    Layout.topMargin: 5
+                    horizontalAlignment: Text.AlignRight
+                }
+
                 // 그래프
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 450 * (new Set(sensorGraphRoot.messageFrame.slice(1).map(f => f.units)).size) // 그래프 개수
                     Layout.topMargin: 30
+                    visible: sensorGraphRoot.messageFrame.some(f => f.name == 'time_usec' || f.name == 'time_boot_ms') // 시간 필드가 있을 때만 표시
 
                     WebEngineView {
                         id: webView
@@ -466,7 +488,13 @@ ColumnLayout {
         sensorGraphRoot.messageFrame = metaData.fields;
 
         if (sensorGraphRoot.htmlLoaded) {
-            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(metaData.fields)});`;
+            // 메시지의 Hz 정보 가져오기
+            var hz = serialManager.getMessageHz(msgId);
+            var dataToSend = {
+                fields: metaData.fields,
+                hz: hz
+            };
+            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(dataToSend)});`;
             webView.runJavaScript(jsCode);
         } else {
             console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");

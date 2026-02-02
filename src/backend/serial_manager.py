@@ -37,6 +37,9 @@ class SerialManager(QObject):
         self.data_reading_thread = None
         self.data_reading_thread_stop_flag = threading.Event()
 
+        # 메시지 통계 추적 (msg_id: {'count': int, 'start_time': float})
+        self.message_stats = {}
+
     @Slot(result=list)
     def getPortList(self):
         """
@@ -191,6 +194,10 @@ class SerialManager(QObject):
                     msg = {}
                     for key, value in zip(message_frame[msg_id], data):
                         msg[key] = value
+
+                    # 메시지 통계 업데이트
+                    self._update_message_stats(msg_id)
+
                     self.messageUpdated.emit(msg_id, msg)
 
                     # 다음 메시지 선택
@@ -214,12 +221,47 @@ class SerialManager(QObject):
                 if msg:
                     msg_id = msg.get_msgId()
                     msg_dict = msg.to_dict()
+
+                    # 메시지 통계 업데이트
+                    self._update_message_stats(msg_id)
+
                     self.messageUpdated.emit(msg_id, msg_dict)
         except Exception as e:
             print("[Data Reading Thread] 연결 끊김 감지!")
             self.port = None
             self.baudrate = None
             return
+
+    def _update_message_stats(self, msg_id: int):
+        """
+        메시지 통계 업데이트 (count, start_time)
+        """
+        current_time = time.time()
+
+        if msg_id not in self.message_stats:
+            self.message_stats[msg_id] = {
+                'count': 0,
+                'start_time': current_time
+            }
+
+        self.message_stats[msg_id]['count'] += 1
+
+    @Slot(int, result=float)
+    def getMessageHz(self, msg_id: int):
+        """
+        특정 메시지의 Hz(주파수)를 계산하여 반환
+        """
+        if msg_id not in self.message_stats:
+            return 0.0
+
+        stats = self.message_stats[msg_id]
+        elapsed_time = time.time() - stats['start_time']
+
+        if elapsed_time <= 0:
+            return 0.0
+
+        hz = stats['count'] / elapsed_time
+        return hz
 
     @Slot(result=bool)
     def disconnectSerial(self):
@@ -245,6 +287,7 @@ class SerialManager(QObject):
         self.mavlink = None
         self.port = None
         self.baudrate = None
+        self.message_stats = {}  # 통계 초기화
         print("PX4 시리얼 연결이 해제되었습니다.")
         return True
 
@@ -265,6 +308,7 @@ class SerialManager(QObject):
         self.mavlink = None
         self.udp_ip = None
         self.udp_port = None
+        self.message_stats = {}  # 통계 초기화
         print("PX4 UDP 연결이 해제되었습니다.")
         return True
 
@@ -296,25 +340,27 @@ class SerialManager(QObject):
             if self.mavlink:
                 mavlink_messages = self.mavlink.messages
                 for msg_name, msg_def in mavlink_messages.items():
-                    if hasattr(msg_def, 'id') and hasattr(msg_def, 'fieldnames'):
+                    if '[' in msg_name:
+                        continue
+                    if hasattr(msg_def, 'get_msgId') and hasattr(msg_def, 'fieldnames'):
+                        if msg_def.get_msgId() == 0:
+                            continue
                         message_list.append({
-                            'id': msg_def.id,
+                            'id': msg_def.get_msgId(),
                             'name': msg_name,
-                            'fields': msg_def.fieldnames
+                            'rate': self.getMessageHz(msg_def.get_msgId())
                         })
         else:
             # 자작 FC 메시지 목록
             if self.minilink:
                 for key, value in self.minilink.getMessageList().items():
-                    name = value[0]
-                    fields = self.minilink.getMessageColumnNames(key)
                     message_list.append({
                         'id': key,
-                        'name': name,
-                        'fields': fields
+                        'name': value[0],
+                        'rate': self.getMessageHz(key)
                     })
 
-        message_list = sorted(message_list, key=lambda x: x['id'])
+        message_list.sort(key=lambda x: x['id'])
         return message_list
 
     @Slot(int, list, bool)
