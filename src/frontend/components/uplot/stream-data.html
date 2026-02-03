@@ -47,11 +47,11 @@
 				let d = u.data[sidx];
 				v = d[d.length - 1];
 			}
-			
-			// 값이 소수이면 소수점 5자리
-			var precision = (v%1)?5:0
 
-			return v == null ? null : v.toFixed(precision) + suffix;
+			// 값이 소수이면 소수점 5자리
+			var precision = (v % 1) ? 5 : 0
+
+			return (v == null || isNaN(v)) ? null : v.toFixed(precision) + suffix;
 		};
 
 		// HSL 색상 모델을 HEX로 변환하는 함수
@@ -88,6 +88,7 @@
 		let graphData = [];
 		let graphOptions = [];
 		let setIntervalInstances = []; // setInterval 인스턴스들을 저장할 배열
+		let updateRate = 10; // 그래프 업데이트 주파수 (Hz)
 
 		const defaultsOpts = {
 			title: "xacc / yacc / zacc (mG)",
@@ -118,6 +119,7 @@
 
 		window.initGraphOpts = function (metaData) {
 			graphOptions = [];
+			timestampField = null;
 			graphMetaData = metaData;
 
 			// 같은 단위끼리 묶기
@@ -126,7 +128,7 @@
 			};
 			metaData.forEach(item => {
 				if (!item.plot) return; // plot이 false인 경우도 제외
-				if (item.name.startsWith('time')) { // time으로 시작하는 항목은 제외
+				if (item.name === 'time_boot_ms' || item.name === 'time_usec') {
 					timestampField = item;
 					return;
 				}
@@ -143,6 +145,15 @@
 				}
 				groupedMetaData[item.units].push(item);
 			});
+
+			// timestampField가 없으면 임의의 필드 생성
+			if (!timestampField) {
+				timestampField = {
+					name: 'timestamp',
+					units: '',
+					type: 'uint32_t'
+				};
+			}
 
 			// 각 단위별로 그래프 옵션 생성
 			for (let unit in groupedMetaData) {
@@ -194,9 +205,12 @@
 		};
 
 		// 그래프 데이터 초기화 함수
-		window.initGraphData = function (graphOptions) {
+		window.initGraphData = function (graphOptions, hz = 10) {
 			graphData = [];
+			updateRate = hz;
+
 			graphOptions.forEach(opts => {
+				// 초기 타임스탬프를 Hz 기반 간격으로 생성
 				let data = [
 					Array.from({ length: 200 }, (_, i) => i), // x축 데이터
 				];
@@ -233,7 +247,11 @@
 		}
 
 		// QML에서 그래프 metaData를 받고 그래프 옵션을 초기화
-		window.receiveGraphMetaData = function (metaData) {
+		window.receiveGraphMetaData = function (data) {
+			// data는 {fields: [...], hz: number} 형태
+			let metaData = data.fields;
+			let hz = data.hz || 10; // Hz가 없으면 기본값 10Hz
+
 			// 기존 setInterval 해제
 			setIntervalInstances.forEach(intervalId => {
 				clearInterval(intervalId);
@@ -243,7 +261,7 @@
 			// 그래프 초기화
 			document.getElementById('graphs').innerHTML = '';
 			initGraphOpts(metaData);
-			initGraphData(graphOptions);
+			initGraphData(graphOptions, hz);
 
 			// 그래프 생성
 			graphOptions.forEach((opts, index) => {
@@ -256,17 +274,40 @@
 			graphOptions.forEach((opts, graphIndex) => {
 				// 축 이름 추출 (ex: time_boot_ms, xacc, yacc, zacc)
 				let seriesNames = opts.series.map(s => s.label);
+				let timestampName;
+				let currentTimestamp;
+				let updateInterval;
 
-				// 타임스탬프 초깃값은 0~199로 임의로 설정된 값임
-				// 자연스러운 그래프 움직임을 위해 첫 출력 시 103ms 간격으로 변경
-				if (seriesNames[0].startsWith('time') && graphData[graphIndex][0][0] === 0) {
-					let timestampName = seriesNames[0];
-					graphData[graphIndex][0] = Array.from({ length: 200 }, (_, idx) => data[timestampName] - 200 * 103 + idx * 103);
+				// 타임스탬프 초기화: 첫 데이터 수신 시 실제 간격 기반으로 재설정
+				if (graphData[graphIndex][0][0] === 0) {
+					if (seriesNames[0] == 'time_boot_ms') {
+						timestampName = seriesNames[0];
+						currentTimestamp = data[timestampName];
+						updateInterval = 1000 / updateRate; // 밀리초 단위
+					} else if (seriesNames[0] == 'time_usec') {
+						timestampName = seriesNames[0];
+						currentTimestamp = data[timestampName];
+						updateInterval = 1000000 / updateRate; // 마이크로초 단위
+					} else {
+						// 임의의 타임스탬프인 timestamp 사용
+						currentTimestamp = 200;
+						updateInterval = 1;
+					}
+
+					// 현재 타임스탬프를 기준으로 과거 값들 재생성
+					graphData[graphIndex][0] = Array.from({ length: 200 }, (_, idx) => currentTimestamp - (200 - idx - 1) * updateInterval);
 				}
 
 				// 맨 앞 데이터는 삭제하고 맨 뒤에 새 데이터 추가
 				seriesNames.forEach((name, i) => {
-					graphData[graphIndex][i] = graphData[graphIndex][i].slice(1).concat([data[name]]);
+					if (name === 'timestamp') {
+						// 임의의 타임스탬프인 timestamp += 1
+						let lastValue = graphData[graphIndex][i][graphData[graphIndex][i].length - 1];
+						graphData[graphIndex][i] = graphData[graphIndex][i].slice(1).concat([lastValue + 1]);
+					} else {
+						// time_boot_ms, time_usec인 경우
+						graphData[graphIndex][i] = graphData[graphIndex][i].slice(1).concat([data[name]]);
+					}
 				});
 			});
 		};

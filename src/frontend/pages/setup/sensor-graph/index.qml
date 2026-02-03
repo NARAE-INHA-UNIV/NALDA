@@ -3,7 +3,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtWebEngine 1.10
-import Styles 1.0
+import Colors 1.0
 
 ColumnLayout {
     id: sensorGraphRoot
@@ -202,6 +202,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Layout.maximumWidth: parent.width
                     wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
                 }
 
                 // 테이블 뷰
@@ -224,7 +225,7 @@ ColumnLayout {
                             spacing: 0
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -240,7 +241,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -256,7 +257,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -272,7 +273,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -288,7 +289,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -319,7 +320,7 @@ ColumnLayout {
                             spacing: 0
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -334,22 +335,28 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.35
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
                                 border.width: 1
 
                                 Text {
-                                    text: (tableRow.index !== undefined && sensorGraphRoot.selectedMessageValues.length > tableRow.index) ? sensorGraphRoot.selectedMessageValues[tableRow.index].toString() : ""
+                                    text: (tableRow.index !== undefined && sensorGraphRoot.selectedMessageValues[tableRow.index] !== undefined) ? sensorGraphRoot.selectedMessageValues[tableRow.index].toString() : ""
                                     color: Colors.textPrimary
                                     font.pixelSize: 12
-                                    anchors.centerIn: parent
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 5
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 5
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
                                 }
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -364,7 +371,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -379,7 +386,7 @@ ColumnLayout {
                             }
 
                             Rectangle {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 border.color: Colors.gray500
@@ -394,18 +401,22 @@ ColumnLayout {
 
                                     onCheckedChanged: {
                                         sensorGraphRoot.messageFrame[tableRow.index].plot = checked;
-
-                                        if (sensorGraphRoot.htmlLoaded) {
-                                            var jsCode = "window.receiveGraphMetaData(" + JSON.stringify(sensorGraphRoot.messageFrame) + ");";
-                                            webView.runJavaScript(jsCode);
-                                        } else {
-                                            console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
-                                        }
+                                        initGraph();
                                     }
                                 }
                             }
                         }
                     }
+                }
+
+                // 업데이트 주기 표시
+                Text {
+                    text: "rate: " + (serialManager.getMessageHz(sensorGraphRoot.selectedMessageId).toFixed(2)) + " Hz"
+                    color: Colors.textPrimary
+                    font.pixelSize: 14
+                    Layout.fillWidth: true
+                    Layout.topMargin: 5
+                    horizontalAlignment: Text.AlignRight
                 }
 
                 // 그래프
@@ -459,17 +470,25 @@ ColumnLayout {
     }
 
     function setTargetMessage(msgId) {
-        console.log("setTargetMessage 호출:", msgId);
         var metaData = sensorGraphManager.setTargetMessage(msgId);
         sensorGraphRoot.selectedMessageName = metaData.name;
         sensorGraphRoot.selectedMessageDesc = metaData.description;
         sensorGraphRoot.messageFrame = metaData.fields;
+        initGraph();
+    }
 
+    function initGraph() {
         if (sensorGraphRoot.htmlLoaded) {
-            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(metaData.fields)});`;
+            // 메시지의 Hz 정보 가져오기
+            var hz = serialManager.getMessageHz(sensorGraphRoot.selectedMessageId);
+            var dataToSend = {
+                fields: sensorGraphRoot.messageFrame,
+                hz: hz
+            };
+            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(dataToSend)});`;
             webView.runJavaScript(jsCode);
         } else {
-            console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
+            console.log("HTML이 아직 로드되지 않았습니다.");
         }
     }
 }

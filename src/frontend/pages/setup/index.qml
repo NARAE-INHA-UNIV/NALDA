@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import Styles 1.0
+import Colors 1.0
 
 Rectangle {
     id: setupPage

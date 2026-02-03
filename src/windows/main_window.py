@@ -128,8 +128,8 @@ class MainWindow(QMainWindow):
         context.setContextProperty("yourTreeModel", self.parameter_setting_manager.tree_model)
 
         # 전역 스타일 설정
-        frontend_path = resource_path("frontend")
-        engine.addImportPath(frontend_path)
+        styles_path = resource_path("frontend/styles")
+        engine.addImportPath(styles_path)
 
         # main.qml 설정
         qml_file = resource_path("frontend/main.qml")

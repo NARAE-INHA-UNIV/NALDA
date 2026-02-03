@@ -4,6 +4,7 @@ import sys
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QSplashScreen
 from PySide6.QtGui import QFontDatabase, QFont, QPixmap, QIcon
+from PySide6.QtWebEngineQuick import QtWebEngineQuick  # linux trouble shooting: 사용하지는 않지만 import 해야 QtWebEngine이 작동함
 
 from windows.main_window import MainWindow
 from backend.utils import resource_path

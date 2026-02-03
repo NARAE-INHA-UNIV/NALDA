@@ -3,7 +3,7 @@
 # 소스 파일 포함
 datas = [
     ('backend', 'backend'),
-    ('src', 'src'),
+    ('frontend', 'frontend'),
     ('windows', 'windows'),
 ]
 
@@ -53,7 +53,7 @@ exe = EXE(
 )
 
 # BUNDLE 객체: EXE를 감싸서 .app 번들을 만듭니다.
-# 이 객체가 있으면 onedir 모드로 .app이 생성됩니다.
+# 이 객체가 있으면 onefile 모드로 .app이 생성됩니다.
 app = BUNDLE(
     exe,
     name='NALDA.app',

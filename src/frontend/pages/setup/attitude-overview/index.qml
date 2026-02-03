@@ -3,14 +3,14 @@ import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtWebEngine 1.10
-import Styles 1.0
+import Colors 1.0
 
 ColumnLayout {
     id: attitudeOverviewRoot
     anchors.fill: parent
 
     property var messageFrame: []
-    property int selectedMessageId: 30
+    property int attitudeMessageId: 30
 
     property bool htmlLoaded: false
 
@@ -25,7 +25,7 @@ ColumnLayout {
     // 30번 ATTITUDE를 받아오도록 수정
     onHtmlLoadedChanged: {
         if (htmlLoaded) {
-            var metaData = attitudeOverviewManager.setTargetMessage(attitudeOverviewRoot.selectedMessageId);
+            var metaData = attitudeOverviewManager.setTargetMessage(attitudeOverviewRoot.attitudeMessageId);
 
             // 단위를 rad에서 degree로 변환
             for (var i = 0; i < metaData.fields.length; i++) {
@@ -39,7 +39,12 @@ ColumnLayout {
 
             attitudeOverviewRoot.messageFrame = metaData.fields;
 
-            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(metaData.fields)});`;
+            var hz = serialManager.getMessageHz(attitudeOverviewRoot.attitudeMessageId);
+            var dataToSend = {
+                fields: attitudeOverviewRoot.messageFrame,
+                hz: hz
+            };
+            var jsCode = `window.receiveGraphMetaData(${JSON.stringify(dataToSend)});`;
             webView.runJavaScript(jsCode);
         }
     }
