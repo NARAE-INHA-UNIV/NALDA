@@ -4,7 +4,7 @@ import QtQuick.Controls 2.15
 import QtLocation 5.15
 import QtPositioning 5.15
 import QtQuick.Dialogs
-import Styles 1.0
+import Colors 1.0
 
 Rectangle {
     id: planPage

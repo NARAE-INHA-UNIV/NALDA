@@ -3,7 +3,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtWebEngine 1.10
-import Styles 1.0
+import Colors 1.0
 
 ColumnLayout {
     id: sensorGraphRoot

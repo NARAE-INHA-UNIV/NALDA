@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Styles 1.0
+import Colors 1.0
 
 ColumnLayout {
     id: parameterSettingRoot

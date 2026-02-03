@@ -1,2 +1,2 @@
-module Styles
+module Colors
 singleton Colors 1.0 Colors.qml
