@@ -348,6 +348,7 @@ class SerialManager(QObject):
                         message_list.append({
                             'id': msg_def.get_msgId(),
                             'name': msg_name,
+                            'fields': msg_def.fieldnames,
                             'rate': self.getMessageHz(msg_def.get_msgId())
                         })
         else:
@@ -357,6 +358,7 @@ class SerialManager(QObject):
                     message_list.append({
                         'id': key,
                         'name': value[0],
+                        'fields': self.minilink.getMessageColumnNames(key),
                         'rate': self.getMessageHz(key)
                     })
 
