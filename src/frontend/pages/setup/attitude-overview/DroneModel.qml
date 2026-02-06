@@ -88,7 +88,7 @@ Node {
 
     // motor thrust vectors
     TrustVector {
-        id: frontRightMotorThrust
+        id: frontLeftMotorThrust
         showThrust: node.showThrust
         thrustValue: motorThrustScaler(node.motorThrust[0])
         posX: 61.5
@@ -96,7 +96,7 @@ Node {
     }
 
     TrustVector {
-        id: frontLeftMotorThrust
+        id: frontRightMotorThrust
         showThrust: node.showThrust
         thrustValue: motorThrustScaler(node.motorThrust[1])
         posX: -61.5

@@ -23,7 +23,7 @@ ColumnLayout {
     property real pitchDirection: 1
     property real yawDirection: 1
 
-    property var motorThrust: [1000, 1000, 1000, 1000] // front right, front left, rear left, rear right
+    property var motorThrust: [1000, 1000, 1000, 1000] // front left, front right, rear left, rear right
 
     property bool showFixedAxes: true
     property bool showHelperAxes: true
@@ -79,7 +79,7 @@ ColumnLayout {
                     var jsCode = `window.receiveData(${JSON.stringify(data)});`;
                     webView.runJavaScript(jsCode);
                 } else {
-                    console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
+                    console.log("HTML이 아직 로드되지 않았습니다.");
                 }
             } else if (message_id === 36) {
                 // SERVO_OUTPUT_RAW
@@ -89,7 +89,7 @@ ColumnLayout {
                     var jsCode = `window.updateAllMotors(${JSON.stringify(attitudeOverviewRoot.motorThrust)});`;
                     topWebView.runJavaScript(jsCode);
                 } else {
-                    console.log("서보 HTML이 아직 로드되지 않았습니다. 데이터 무시:");
+                    console.log("서보 HTML이 아직 로드되지 않았습니다.");
                 }
             }
         }
@@ -166,11 +166,15 @@ ColumnLayout {
                         id: topWebView
                         x: 0
                         y: 0
-                        width: 150
+                        width: 170
                         height: 300
                         z: 1
                         backgroundColor: "transparent"
                         visible: attitudeOverviewRoot.showThrust
+
+                        // Windows 투명 배경 렌더링 문제 해결
+                        layer.enabled: true
+                        layer.smooth: true
 
                         url: Qt.resolvedUrl("./servo-graph.html")
 
