@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>servo graph</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .motors-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+
+        .motor-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .bar-container {
+            width: 12px;
+            height: 70px;
+            background: #1a1a1a;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+            border: #00ff00 1px solid;
+            padding: 2px;
+        }
+
+        .bar {
+            background: #00ff00;
+        }
+
+        .motor-info {
+            text-align: center;
+            color: #00ff00;
+            font-size: 12px;
+        }
+
+        .motor-label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .motor-value {
+            font-size: 14px;
+        }
+
+        @media (max-width: 200px) {
+            .motors-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="motors-grid">
+            <div class="motor-item">
+                <div class="bar-container">
+                    <div class="bar" id="bar-1" style="height: 0%"></div>
+                </div>
+                <div class="motor-info">
+                    <div class="motor-label">FRONT_L</div>
+                    <div class="motor-value" id="value-1">0</div>
+                </div>
+            </div>
+
+            <div class="motor-item">
+                <div class="bar-container">
+                    <div class="bar" id="bar-2" style="height: 0%"></div>
+                </div>
+                <div class="motor-info">
+                    <div class="motor-label">FRONT_R</div>
+                    <div class="motor-value" id="value-2">0</div>
+                </div>
+            </div>
+
+            <div class="motor-item">
+                <div class="bar-container">
+                    <div class="bar" id="bar-3" style="height: 0%"></div>
+                </div>
+                <div class="motor-info">
+                    <div class="motor-label">REAR_L</div>
+                    <div class="motor-value" id="value-3">0</div>
+                </div>
+            </div>
+
+            <div class="motor-item">
+                <div class="bar-container">
+                    <div class="bar" id="bar-4" style="height: 0%"></div>
+                </div>
+                <div class="motor-info">
+                    <div class="motor-label">REAR_R</div>
+                    <div class="motor-value" id="value-4">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let motorValues = [0, 0, 0, 0];
+
+        function updateMotor(motorIndex, value) {
+            const bar = document.getElementById(`bar-${motorIndex + 1}`);
+            const valueDisplay = document.getElementById(`value-${motorIndex + 1}`);
+
+            motorValues[motorIndex] = value;
+            const heightPercent = ((value - 1000) / 1000) * 100; // 1000-2000 범위를 0-100%로 변환
+            bar.style.height = heightPercent + '%';
+            valueDisplay.textContent = Math.round(value);
+        }
+
+        function updateAllMotors(values) {
+            motorValues = values;
+            for (let i = 0; i < 4; i++) {
+                updateMotor(i, motorValues[i]);
+            }
+        }
+
+        // 페이지 로드 시 자동 시작
+        window.addEventListener('load', () => {
+            updateAllMotors([1200, 1300, 1400, 1250]);
+        });
+    </script>
+</body>
+
+</html>

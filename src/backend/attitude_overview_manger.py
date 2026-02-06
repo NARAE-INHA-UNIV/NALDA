@@ -5,13 +5,15 @@ from .MiniLink.lib.xmlHandler import XmlHandler
 
 
 class AttitudeOverviewManager(QObject):
-    messageUpdated = Signal(dict)  # 메시지 업데이트 시그널
+    messageUpdated = Signal(int, dict)  # 메시지 업데이트 시그널
     newPidGains = Signal(int, list, bool)     # 새로운 PID 게인 시그널
 
     def __init__(self):
         super().__init__()
-        self.current_message_id = None
-        self.message_data = {}
+        self.target_message_ids = [
+            30,  # ATTITUDE
+            36,  # SERVO_OUTPUT_RAW
+        ]
 
         self.xmlHandler = XmlHandler()
         self.xmlHandler.loadMessageListFromXML({})
@@ -21,14 +23,11 @@ class AttitudeOverviewManager(QObject):
         """
         SerialManager에 메시지가 전달되면 호출되는 슬롯
         """
-        if message_id == self.current_message_id:
-            self.message_data = data
-            self.messageUpdated.emit(data)
+        if message_id in self.target_message_ids:
+            self.messageUpdated.emit(message_id, data)
 
     @Slot(int, result=dict)
     def setTargetMessage(self, message_id: int):
-        self.current_message_id = message_id
-
         # 해당 메시지의 모든 속성을 가져와서 QML에 전달
         instance = self.xmlHandler.getMessageInstance(message_id)
         fields = [field.attrib for field in instance.findall("field")]
