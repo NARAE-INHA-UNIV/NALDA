@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtLocation 5.15
 import QtPositioning 5.15
+import Colors 1.0
 
 Rectangle {
     id: ndRoot
@@ -15,11 +16,11 @@ Rectangle {
         enabled: gpsManager !== null
 
         function onGpsDataChanged(lat, lon, alt, hdg) {
-            // console.log("QML Received GPS:", lat, lon, alt, hdg);
+            console.log("QML Received GPS:", lat, lon, alt, hdg);
             var newCoordinate = QtPositioning.coordinate(lat, lon);
             map.center = newCoordinate;
             // droneMarker의 coordinate는 pathData의 마지막 요소를 통해 자동으로 업데이트되므로 여기서 직접 설정할 필요가 없다.
-            gpsInfoText.text = `[현재 위치]   위도: ${lat.toFixed(7)}   |   경도: ${lon.toFixed(7)}   |   방위각: ${hdg.toFixed(2)}°`;
+            console.log("위도", lat.toFixed(7), "경도", lon.toFixed(7), "방위각", hdg.toFixed(2));
         }
 
         // pathData가 변경되면 MapPolyline과 MapItemView가 자동으로 업데이트하므로, onPathDataChanged 핸들러는 명시적으로 필요하지 않다.
@@ -95,16 +96,65 @@ Rectangle {
             }
         }
 
-        // GPS 정보 표시 텍스트
-        Text {
-            id: gpsInfoText
-            anchors.centerIn: parent
-            text: "GPS 정보 수신 기다리는 중..."
-            color: "black"
-            font.pixelSize: 14
-            horizontalAlignment: Text.AlignHCenter
+        // GPS 연결 상태 표시
+        Rectangle {
+            id: gpsStatusIndicator
+            width: 130
+            height: 34
+            radius: 34
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.margins: 10
+            border.color: Colors.gray100
+            border.width: 1
+            color: Colors.gray800
+
+            RowLayout {
+                anchors.centerIn: parent
+                spacing: 10
+
+                RowLayout {
+                    spacing: 4
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Image {
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
+                        source: resourceManager.getUrl("assets/icons/map/satellite_alt.svg")
+                        fillMode: Image.PreserveAspectFit
+                    }
+                    Text {
+                        text: "5"
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        // font.weight: 600
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                RowLayout {
+                    spacing: 4
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "HDOP"
+                        color: Colors.textPrimary
+                        font.weight: 600
+                        font.pixelSize: 14
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    Text {
+                        text: "0.5"
+                        color: Colors.textPrimary
+                        font.pixelSize: 14
+                        // font.weight: 600
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
         }
 
+        // 경로 기록 조회 버튼
         Button {
             anchors.bottom: parent.bottom
             anchors.right: parent.right

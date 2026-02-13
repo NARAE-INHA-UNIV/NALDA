@@ -32,6 +32,11 @@ class DockableWidget(QWidget):
         for manager_name, manager in managers:
             context.setContextProperty(manager_name, manager)
 
+        # 전역 스타일 설정
+        engine = self.qml_widget.engine()
+        styles_path = resource_path("frontend/styles")
+        engine.addImportPath(styles_path)
+
         # qml 소스 등록
         self.qml_widget.setSource(QUrl.fromLocalFile(resource_path(qml_path)))
         self.qml_widget.setResizeMode(QQuickWidget.SizeRootObjectToView)
