@@ -110,6 +110,7 @@ class SerialManager(QObject):
             print(f"PX4 UDP {ip}:{port}에 성공적으로 연결되었습니다.")
 
             # 연결된 IP와 포트 저장
+            self.is_px4 = True
             self.udp_ip = ip
             self.udp_port = port
 
@@ -121,6 +122,7 @@ class SerialManager(QObject):
         except Exception as e:
             error_msg = f"UDP 연결 실패: {str(e)}"
             print(error_msg)
+            self.is_px4 = False
             self.udp_ip = None
             self.udp_port = None
 
