@@ -12,6 +12,7 @@ Rectangle {
     property bool connected: false
     property int lastHeartbeatTime: 0
     property bool isArmed: false
+    property int landedState: 0
     property string flightMode: "Unknown"
 
     property var stateList: [
@@ -41,12 +42,24 @@ Rectangle {
         },
         {
             id: 5,
+            text: 'Takeoff',
+            bgColor: '#1b3e1b',
+            borderColor: '#4caf50'
+        },
+        {
+            id: 6,
+            text: 'Landing',
+            bgColor: '#1b3e1b',
+            borderColor: '#4caf50'
+        },
+        {
+            id: 7,
             text: 'Connection Lost',
             bgColor: '#3e1b1b',
             borderColor: '#f44336'
         },
     ]
-    property int stateId: 4
+    property int stateId: 1
 
     property var modeList: [
         {
@@ -122,7 +135,7 @@ Rectangle {
         {
             id: 11,
             mode: 'RTGS',
-            text: 'Return to Ground Station',
+            text: 'Return',
             bgColor: '#1b2a3e',
             borderColor: '#2196F3'
         },
@@ -152,20 +165,32 @@ Rectangle {
 
     property var vtolStateList: [
         {
+            id: 0,
+            text: 'Undefined',
+            bgColor: Colors.gray800,
+            borderColor: Colors.gray400
+        },
+        {
             id: 1,
-            text: 'MC',
-            bgColor: '#1b3e1b',
-            borderColor: '#4caf50'
+            text: 'Transition to FW',
+            bgColor: '#332b00',
+            borderColor: '#ffc107'
         },
         {
             id: 2,
-            text: 'Transition',
+            text: 'Transition to MC',
             bgColor: '#332b00',
             borderColor: '#ffc107'
         },
         {
             id: 3,
-            text: 'FW',
+            text: 'Multicopter',
+            bgColor: '#1b3e1b',
+            borderColor: '#4caf50'
+        },
+        {
+            id: 4,
+            text: 'Fixed-Wing',
             bgColor: '#1b3e1b',
             borderColor: '#4caf50'
         },
@@ -188,6 +213,7 @@ Rectangle {
         target: serialManager
 
         function onMessageUpdated(msgId, msg) {
+            // console.log("Received MAVLink Msg ID:", msgId);
             // Heartbeat (ID 0)
             if (msgId === 0) {
                 root.connected = true;
@@ -203,6 +229,8 @@ Rectangle {
                 } else {
                     root.flightMode = (baseMode & 128) ? "ARMED" : "DISARMED";
                 }
+
+                updateState();
             }
 
             // SYS_STATUS (ID 1)
@@ -221,20 +249,20 @@ Rectangle {
 
             // SERVO_OUTPUT_RAW (ID 36)
             if (msgId === 36) {
-                var m1 = normalizeServo(msg.servo1_raw);
-                var m2 = normalizeServo(msg.servo2_raw);
-                var m3 = normalizeServo(msg.servo3_raw);
-                var m4 = normalizeServo(msg.servo4_raw);
+                var m1 = msg.servo1_raw;
+                var m2 = msg.servo2_raw;
+                var m3 = msg.servo3_raw;
+                var m4 = msg.servo4_raw;
                 root.motorValues = [m1, m2, m3, m4];
             }
-        }
-    }
 
-    function normalizeServo(raw) {
-        if (!raw)
-            return 0.0;
-        var val = (raw - 1000) / 1000.0;
-        return Math.max(0.0, Math.min(1.0, val));
+            // EXTENDED_SYS_STATE (ID 245)
+            if (msgId === 245) {
+                root.vtolStateId = msg.vtol_state;
+                root.landedState = msg.landed_state;
+                updateState();
+            }
+        }
     }
 
     // --- Connection Timeout Logic ---
@@ -251,6 +279,8 @@ Rectangle {
     //             root.motorValues = [0, 0, 0, 0];
     //             root.flightMode = "DISCONNECTED";
     //             root.isArmed = false;
+    //             root.lastHeartbeatTime = currentTime;
+    //             console.log("Connection timed out. Marking as disconnected.");
     //         }
     //     }
     // }
@@ -379,6 +409,7 @@ Rectangle {
 
                     // Mode Badge
                     Rectangle {
+                        id: modeBadge
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: root.modeList[root.modeId - 1].bgColor
@@ -404,6 +435,14 @@ Rectangle {
                                 color: "white"
                                 font.pixelSize: 16
                                 font.bold: true
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                modeSelectionDialog.open();
                             }
                         }
                     }
@@ -472,12 +511,20 @@ Rectangle {
                         Button {
                             Layout.fillWidth: true
                             height: 36
-                            text: "Arm"
+                            text: root.isArmed ? "Disarm" : "Arm"
+
+                            onClicked: {
+                                root.pendingCommand = text;
+                                root.pendingCommandFunc = function () {
+                                    serialManager.sendArmCommand(!root.isArmed);
+                                };
+                                commandConfirmDialog.open();
+                            }
 
                             background: Rectangle {
-                                color: parent.down ? "#FFB300" : "#2a2a2a"
+                                color: parent.down ? "#FFB300" : (root.isArmed ? "#3e1b1b" : "#2a2a2a")
                                 radius: 4
-                                border.color: parent.down ? "#FFB300" : "#333"
+                                border.color: parent.down ? "#FFB300" : (root.isArmed ? "#f44336" : "#333")
                                 border.width: 1
                             }
 
@@ -495,6 +542,14 @@ Rectangle {
                             Layout.fillWidth: true
                             height: 36
                             text: "Takeoff"
+
+                            onClicked: {
+                                root.pendingCommand = text;
+                                root.pendingCommandFunc = function () {
+                                    serialManager.sendTakeoffCommand(5.0);
+                                };
+                                commandConfirmDialog.open();
+                            }
 
                             background: Rectangle {
                                 color: parent.down ? "#FFB300" : "#2a2a2a"
@@ -518,6 +573,14 @@ Rectangle {
                             height: 36
                             text: "Land"
 
+                            onClicked: {
+                                root.pendingCommand = text;
+                                root.pendingCommandFunc = function () {
+                                    serialManager.sendLandCommand();
+                                };
+                                commandConfirmDialog.open();
+                            }
+
                             background: Rectangle {
                                 color: parent.down ? "#FFB300" : "#2a2a2a"
                                 radius: 4
@@ -535,27 +598,31 @@ Rectangle {
                             }
                         }
 
-                        Button {
-                            Layout.fillWidth: true
-                            height: 36
-                            text: "Return"
+                        // Button {
+                        //     Layout.fillWidth: true
+                        //     height: 36
+                        //     text: "Return"
 
-                            background: Rectangle {
-                                color: parent.down ? "#FFB300" : "#2a2a2a"
-                                radius: 4
-                                border.color: parent.down ? "#FFB300" : "#333"
-                                border.width: 1
-                            }
+                        //     onClicked: {
+                        //         serialManager.sendReturnCommand();
+                        //     }
 
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.down ? "black" : "#e0e0e0"
-                                font.pixelSize: 13
-                                font.weight: Font.Medium
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
+                        //     background: Rectangle {
+                        //         color: parent.down ? "#FFB300" : "#2a2a2a"
+                        //         radius: 4
+                        //         border.color: parent.down ? "#FFB300" : "#333"
+                        //         border.width: 1
+                        //     }
+
+                        //     contentItem: Text {
+                        //         text: parent.text
+                        //         color: parent.down ? "black" : "#e0e0e0"
+                        //         font.pixelSize: 13
+                        //         font.weight: Font.Medium
+                        //         horizontalAlignment: Text.AlignHCenter
+                        //         verticalAlignment: Text.AlignVCenter
+                        //     }
+                        // }
 
                         Item {
                             Layout.fillHeight: true
@@ -608,7 +675,7 @@ Rectangle {
                                             anchors.bottom: parent.bottom
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             width: parent.width - 4
-                                            height: (parent.height - 4) * ((root.motorValues[index] - 1000) / 1000.0)
+                                            height: (parent.height - 4) * normalizeServo(root.motorValues[index])
                                             color: "#4CAF50"
                                             radius: 2
                                             anchors.margins: 2
@@ -705,6 +772,321 @@ Rectangle {
 
                         Item {
                             Layout.fillHeight: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function updateState() {
+        if (!root.connected) {
+            root.stateId = 1; // Disconnected
+            return;
+        } else if (!root.isArmed) {
+            root.stateId = 2; // Disarmed
+            return;
+        } else if (root.landedState === 1) {
+            root.stateId = 3; // armed (on ground)
+            return;
+        } else if (root.landedState === 2) {
+            root.stateId = 4; // in air
+            return;
+        } else if (root.landedState === 3) {
+            root.stateId = 5; // taking off
+            return;
+        } else if (root.landedState === 4) {
+            root.stateId = 6; // landing
+            return;
+        }
+    }
+
+    function normalizeServo(raw) {
+        if (!raw)
+            return 0.0;
+
+        if (raw < 1000) {
+            // 0 ~ 1000 범위는 그대로 0.0 ~ 1.0으로 매핑
+            return raw / 1000.0;
+        } else {
+            // 1000 ~ 2000 범위는 0.0 ~ 1.0으로 매핑
+            var val = (raw - 1000) / 1000.0;
+            return Math.max(0.0, Math.min(1.0, val));
+        }
+    }
+
+    // 선택된 모드를 임시 저장
+    property string selectedMode: ""
+
+    // 컨트롤 명령 확인용
+    property string pendingCommand: ""
+    property var pendingCommandFunc: null
+
+    // 모드 선택 모달
+    Dialog {
+        id: modeSelectionDialog
+        title: ""
+        modal: true
+        focus: true
+        padding: 0
+        topPadding: 0
+        // bottomPadding: 0
+        // leftPadding: 0
+        // rightPadding: 0
+
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        background: Rectangle {
+            color: Colors.gray900
+            radius: 8
+        }
+
+        contentItem: Column {
+            width: 220
+            spacing: 0
+
+            // Header
+            Rectangle {
+                width: parent.width
+                // height: 50
+                height: 15
+                color: Colors.gray900
+                radius: 8
+
+                // Text {
+                //     anchors.left: parent.left
+                //     anchors.verticalCenter: parent.verticalCenter
+                //     anchors.leftMargin: 15
+                //     text: "Mode"
+                //     color: "#e0e0e0"
+                //     font.pixelSize: 18
+                //     font.bold: true
+                // }
+            }
+
+            // Content
+            Rectangle {
+                width: parent.width
+                height: 200
+                color: Colors.gray900
+
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.leftMargin: 15
+                    anchors.rightMargin: 15
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+                    GridLayout {
+                        width: 190
+                        columns: 2
+                        columnSpacing: 10
+                        rowSpacing: 10
+
+                        Repeater {
+                            model: root.modeList
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                // Layout.preferredWidth: 85
+                                Layout.preferredHeight: 35
+                                color: root.selectedMode === modelData.mode ? Colors.green : "#2a2a2a"
+                                radius: 6
+                                border.color: root.selectedMode === modelData.mode ? Colors.green : "#3a3a3a"
+                                border.width: root.selectedMode === modelData.mode ? 2 : 1
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.text
+                                    color: "#e0e0e0"
+                                    font.pixelSize: 14
+                                    font.weight: root.selectedMode === modelData.mode ? Font.Medium : Font.Normal
+                                    elide: Text.ElideRight
+                                    width: parent.width - 10
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+
+                                    onEntered: {
+                                        if (root.selectedMode !== modelData.mode) {
+                                            parent.color = "#333333";
+                                        }
+                                    }
+
+                                    onExited: {
+                                        if (root.selectedMode !== modelData.mode) {
+                                            parent.color = "#2a2a2a";
+                                        }
+                                    }
+
+                                    onClicked: {
+                                        root.selectedMode = modelData.mode;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Footer
+            Rectangle {
+                width: parent.width
+                height: 60
+                color: Colors.gray900
+                radius: 8
+
+                RowLayout {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.rightMargin: 15
+                    spacing: 15
+
+                    Button {
+                        width: 100
+                        height: 36
+                        text: "Confirm"
+                        enabled: root.selectedMode !== ""
+
+                        onClicked: {
+                            if (root.selectedMode !== "") {
+                                serialManager.setFlightMode(root.selectedMode);
+                                root.selectedMode = "";
+                                modeSelectionDialog.close();
+                            }
+                        }
+
+                        background: Rectangle {
+                            color: parent.enabled ? Colors.green : "#555"
+                            radius: 4
+                            border.color: parent.enabled ? Colors.green : "#555"
+                            border.width: 1
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: parent.enabled ? "white" : "#888"
+                            font.pixelSize: 13
+                            font.weight: 600
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 컨트롤 명령 확인 다이얼로그
+    Dialog {
+        id: commandConfirmDialog
+        title: ""
+        modal: true
+        focus: true
+        padding: 0
+        topPadding: 0
+
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        background: Rectangle {
+            color: Colors.gray900
+            radius: 8
+        }
+
+        contentItem: Column {
+            width: 250
+            spacing: 0
+
+            // Content
+            Rectangle {
+                width: parent.width
+                height: 50
+                color: Colors.gray900
+                radius: 8
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    text: root.pendingCommand + " 명령 실행하기"
+                    color: "#e0e0e0"
+                    font.pixelSize: 16
+                    font.weight: 500
+                }
+            }
+
+            // Footer
+            Rectangle {
+                width: parent.width
+                height: 62
+                color: Colors.gray900
+                radius: 8
+
+                RowLayout {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.rightMargin: 15
+                    spacing: 10
+
+                    Button {
+                        Layout.preferredWidth: 80
+                        Layout.preferredHeight: 46
+                        text: "Cancel"
+
+                        onClicked: {
+                            commandConfirmDialog.close();
+                        }
+
+                        background: Rectangle {
+                            color: parent.down ? "#555" : "#3a3a3a"
+                            radius: 8
+                            border.color: "#555"
+                            border.width: 1
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#e0e0e0"
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+
+                    Button {
+                        Layout.preferredWidth: 80
+                        Layout.preferredHeight: 46
+                        text: "Confirm"
+
+                        onClicked: {
+                            if (root.pendingCommandFunc) {
+                                root.pendingCommandFunc();
+                            }
+                            commandConfirmDialog.close();
+                        }
+
+                        background: Rectangle {
+                            color: parent.down ? "#2e7d32" : Colors.green
+                            radius: 8
+                            border.color: Colors.green
+                            border.width: 1
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            font.pixelSize: 13
+                            font.weight: 600
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
                     }
                 }

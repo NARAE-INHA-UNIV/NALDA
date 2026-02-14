@@ -32,6 +32,11 @@ class DockableWidget(QWidget):
         for manager_name, manager in managers:
             context.setContextProperty(manager_name, manager)
 
+        # 전역 스타일 설정 (QML 로드 전에 설정)
+        styles_path = resource_path("frontend/styles")
+        engine = self.qml_widget.engine()
+        engine.addImportPath(styles_path)
+
         # qml 소스 등록
         self.qml_widget.setSource(QUrl.fromLocalFile(resource_path(qml_path)))
         self.qml_widget.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -200,6 +205,7 @@ class MainWindow(QMainWindow):
             qml_path='frontend/pages/flight/etc-panels/index.qml',
             managers=[
                 ('gpsManager', self.gps_manager),
+                ('serialManager', self.serial_manager),
             ]
         )
         self.dock_bottom_right.setWidget(widget_bottom_right)
