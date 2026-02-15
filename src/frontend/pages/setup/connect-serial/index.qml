@@ -245,7 +245,7 @@ ColumnLayout {
                             id: portComboBoxMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            onPressed: mouse.accepted = false
+                            onPressed: (mouse) => { mouse.accepted = false; }
                         }
 
                         delegate: ItemDelegate {
@@ -384,7 +384,7 @@ ColumnLayout {
                         id: baudRateMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        onPressed: mouse.accepted = false
+                        onPressed: (mouse) => { mouse.accepted = false; }
                     }
 
                     contentItem: Text {

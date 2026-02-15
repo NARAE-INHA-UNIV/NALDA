@@ -101,10 +101,14 @@ class SerialManager(QObject):
         except serial.SerialException as e:
             error_msg = f"시리얼 연결 실패: {str(e)}"
             print(error_msg)
+            if not is_px4:
+                self.minilink.disconnect()
             return False
         except Exception as e:
             error_msg = f"연결 실패: {str(e)}"
             print(error_msg)
+            if not is_px4:
+                self.minilink.disconnect()
             return False
 
     @Slot(str, int, result=bool)
@@ -398,6 +402,7 @@ class SerialManager(QObject):
                         message_list.append({
                             'id': msg_def.get_msgId(),
                             'name': msg_name,
+                            'fields': msg_def.fieldnames,
                             'rate': self.getMessageHz(msg_def.get_msgId())
                         })
         else:
@@ -407,6 +412,7 @@ class SerialManager(QObject):
                     message_list.append({
                         'id': key,
                         'name': value[0],
+                        'fields': self.minilink.getMessageColumnNames(key),
                         'rate': self.getMessageHz(key)
                     })
 

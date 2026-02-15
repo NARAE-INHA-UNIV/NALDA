@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 
-
 View3D {
     id: modelContainer
 
@@ -13,19 +12,22 @@ View3D {
     property real pitchAngle: 0
     property real yawAngle: 0
 
+    property var motorThrust: [0, 0, 0, 0]
+
     property bool showFixedAxes: true
     property bool showHelperAxes: true
+    property bool showThrust: true
 
     function updateCameraPosition() {
-        var radAzimuth = cameraAzimuth * Math.PI / 180
-        var radElevation = cameraElevation * Math.PI / 180
-        
-        var x = cameraDistance * Math.cos(radElevation) * Math.sin(radAzimuth)
-        var y = cameraDistance * Math.sin(radElevation)
-        var z = cameraDistance * Math.cos(radElevation) * Math.cos(radAzimuth)
-        
-        camera.position = Qt.vector3d(x, y, z)
-        camera.lookAt(Qt.vector3d(0, 0, 0))
+        var radAzimuth = cameraAzimuth * Math.PI / 180;
+        var radElevation = cameraElevation * Math.PI / 180;
+
+        var x = cameraDistance * Math.cos(radElevation) * Math.sin(radAzimuth);
+        var y = cameraDistance * Math.sin(radElevation);
+        var z = cameraDistance * Math.cos(radElevation) * Math.cos(radAzimuth);
+
+        camera.position = Qt.vector3d(x, y, z);
+        camera.lookAt(Qt.vector3d(0, 0, 0));
     }
 
     //! [environment]
@@ -42,9 +44,9 @@ View3D {
         id: camera
         position: Qt.vector3d(0, 200, 300)
         eulerRotation.x: -30
-        
+
         Component.onCompleted: {
-            modelContainer.updateCameraPosition()
+            modelContainer.updateCameraPosition();
         }
     }
     //! [camera]
@@ -57,7 +59,7 @@ View3D {
         eulerRotation.y: -70
         brightness: 1.2
     }
-    
+
     // Additional directional lights for better coverage - 더 밝게
     DirectionalLight {
         id: fillLight1
@@ -65,14 +67,14 @@ View3D {
         eulerRotation.y: 110
         brightness: 0.8
     }
-    
+
     DirectionalLight {
         id: fillLight2
         eulerRotation.x: 0
         eulerRotation.y: 180
         brightness: 0.6
     }
-    
+
     // 위쪽에서 비추는 조명 추가
     DirectionalLight {
         id: topLight
@@ -80,7 +82,7 @@ View3D {
         eulerRotation.y: 0
         brightness: 0.8
     }
-    
+
     // 아래쪽에서 비추는 조명 추가
     DirectionalLight {
         id: bottomLight
@@ -88,7 +90,7 @@ View3D {
         eulerRotation.y: 0
         brightness: 0.5
     }
-    
+
     // 전방향 조명
     DirectionalLight {
         id: ambientLight
@@ -142,12 +144,15 @@ View3D {
 
     DroneModel {
         id: droneModel
-        
+
         rollAngle: modelContainer.rollAngle
         pitchAngle: modelContainer.pitchAngle
         yawAngle: modelContainer.yawAngle
 
+        motorThrust: modelContainer.motorThrust
+
         showHelperAxes: modelContainer.showHelperAxes
+        showThrust: modelContainer.showThrust
     }
     //! [objects]
 
@@ -155,43 +160,43 @@ View3D {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        
+
         property real lastMouseX: 0
         property real lastMouseY: 0
         property bool isDragging: false
-        
-        onPressed: function(mouse) {
-            lastMouseX = mouse.x
-            lastMouseY = mouse.y
-            isDragging = true
+
+        onPressed: function (mouse) {
+            lastMouseX = mouse.x;
+            lastMouseY = mouse.y;
+            isDragging = true;
         }
-        
+
         onReleased: {
-            isDragging = false
+            isDragging = false;
         }
-        
-        onPositionChanged: function(mouse) {
-            if (!isDragging) return
-            
-            var deltaX = mouse.x - lastMouseX
-            var deltaY = mouse.y - lastMouseY
-            
+
+        onPositionChanged: function (mouse) {
+            if (!isDragging)
+                return;
+            var deltaX = mouse.x - lastMouseX;
+            var deltaY = mouse.y - lastMouseY;
+
             if (mouse.buttons & Qt.LeftButton) {
                 // Orbit camera (reversed direction)
-                modelContainer.cameraAzimuth -= deltaX * 0.5
-                modelContainer.cameraElevation = Math.max(-89, Math.min(89, modelContainer.cameraElevation + deltaY * 0.5))
-                modelContainer.updateCameraPosition()
+                modelContainer.cameraAzimuth -= deltaX * 0.5;
+                modelContainer.cameraElevation = Math.max(-89, Math.min(89, modelContainer.cameraElevation + deltaY * 0.5));
+                modelContainer.updateCameraPosition();
             }
-            
-            lastMouseX = mouse.x
-            lastMouseY = mouse.y
+
+            lastMouseX = mouse.x;
+            lastMouseY = mouse.y;
         }
-        
-        onWheel: function(wheel) {
+
+        onWheel: function (wheel) {
             // Zoom with mouse wheel
-            var zoomFactor = wheel.angleDelta.y > 0 ? 0.9 : 1.1
-            modelContainer.cameraDistance = Math.max(50, Math.min(1000, modelContainer.cameraDistance * zoomFactor))
-            modelContainer.updateCameraPosition()
+            var zoomFactor = wheel.angleDelta.y > 0 ? 0.9 : 1.1;
+            modelContainer.cameraDistance = Math.max(50, Math.min(1000, modelContainer.cameraDistance * zoomFactor));
+            modelContainer.updateCameraPosition();
         }
     }
 }

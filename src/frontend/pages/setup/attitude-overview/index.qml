@@ -12,19 +12,27 @@ ColumnLayout {
     property var messageFrame: []
     property int attitudeMessageId: 30
 
-    property bool htmlLoaded: false
+    property bool servoHtmlLoaded: false
+    property bool graphHtmlLoaded: false
 
     property real rollAngle: 0
     property real pitchAngle: 0
     property real yawAngle: 0
 
+    property real rollDirection: 1
+    property real pitchDirection: 1
+    property real yawDirection: 1
+
+    property var motorThrust: [1000, 1000, 1000, 1000] // front left, front right, rear left, rear right
+
     property bool showFixedAxes: true
     property bool showHelperAxes: true
+    property bool showThrust: true
 
-    // htmlLoaded 변경 감지 핸들러 추가
+    // graphHtmlLoaded 변경 감지 핸들러 추가
     // 30번 ATTITUDE를 받아오도록 수정
-    onHtmlLoadedChanged: {
-        if (htmlLoaded) {
+    onGraphHtmlLoadedChanged: {
+        if (graphHtmlLoaded) {
             var metaData = attitudeOverviewManager.setTargetMessage(attitudeOverviewRoot.attitudeMessageId);
 
             // 단위를 rad에서 degree로 변환
@@ -53,24 +61,36 @@ ColumnLayout {
     Connections {
         target: attitudeOverviewManager
 
-        function onMessageUpdated(data) {
-            // 자세 업데이트
-            // 30번 ATTITUDE 값은 rad 이므로 변환
-            data.roll = data.roll * 180 / 3.14592;
-            data.pitch = data.pitch * 180 / 3.14592;
-            data.yaw = data.yaw * 180 / 3.14592;
+        function onMessageUpdated(message_id, data) {
+            if (message_id === 30) {
+                // ATTITUDE
+                // 30번 ATTITUDE 값은 rad 이므로 변환
+                data.roll = data.roll * 180 / 3.14592;
+                data.pitch = data.pitch * 180 / 3.14592;
+                data.yaw = data.yaw * 180 / 3.14592;
 
-            // 3D 모델 자세 업데이트
-            attitudeOverviewRoot.rollAngle = data.roll;
-            attitudeOverviewRoot.pitchAngle = data.pitch;
-            attitudeOverviewRoot.yawAngle = data.yaw;
+                // 3D 모델 자세 업데이트
+                attitudeOverviewRoot.rollAngle = data.roll;
+                attitudeOverviewRoot.pitchAngle = data.pitch;
+                attitudeOverviewRoot.yawAngle = data.yaw;
 
-            // HTML이 완전히 로드된 경우에만 JavaScript 함수 호출
-            if (attitudeOverviewRoot.htmlLoaded) {
-                var jsCode = `window.receiveData(${JSON.stringify(data)});`;
-                webView.runJavaScript(jsCode);
-            } else {
-                console.log("HTML이 아직 로드되지 않았습니다. 데이터 무시:");
+                // HTML이 완전히 로드된 경우에만 그래프 업데이트
+                if (attitudeOverviewRoot.graphHtmlLoaded) {
+                    var jsCode = `window.receiveData(${JSON.stringify(data)});`;
+                    webView.runJavaScript(jsCode);
+                } else {
+                    console.log("HTML이 아직 로드되지 않았습니다.");
+                }
+            } else if (message_id === 36) {
+                // SERVO_OUTPUT_RAW
+                attitudeOverviewRoot.motorThrust = [data.servo1_raw, data.servo2_raw, data.servo3_raw, data.servo4_raw];
+
+                if (attitudeOverviewRoot.servoHtmlLoaded) {
+                    var jsCode = `window.updateAllMotors(${JSON.stringify(attitudeOverviewRoot.motorThrust)});`;
+                    topWebView.runJavaScript(jsCode);
+                } else {
+                    console.log("서보 HTML이 아직 로드되지 않았습니다.");
+                }
             }
         }
     }
@@ -122,18 +142,52 @@ ColumnLayout {
                 width: parent.width
                 y: -parent.contentY // 스크롤 오프셋 적용
 
-                // 3D 모델 영역
-                ModelContainer {
-                    id: modelContainer
+                // 3D 모델 영역 (WebEngineView 포함)
+                Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 400
 
-                    rollAngle: attitudeOverviewRoot.rollAngle
-                    pitchAngle: attitudeOverviewRoot.pitchAngle
-                    yawAngle: attitudeOverviewRoot.yawAngle
+                    ModelContainer {
+                        id: modelContainer
+                        anchors.fill: parent
 
-                    showFixedAxes: attitudeOverviewRoot.showFixedAxes
-                    showHelperAxes: attitudeOverviewRoot.showHelperAxes
+                        rollAngle: attitudeOverviewRoot.rollAngle * attitudeOverviewRoot.rollDirection
+                        pitchAngle: attitudeOverviewRoot.pitchAngle * attitudeOverviewRoot.pitchDirection
+                        yawAngle: attitudeOverviewRoot.yawAngle * attitudeOverviewRoot.yawDirection
+
+                        motorThrust: attitudeOverviewRoot.motorThrust
+
+                        showFixedAxes: attitudeOverviewRoot.showFixedAxes
+                        showHelperAxes: attitudeOverviewRoot.showHelperAxes
+                        showThrust: attitudeOverviewRoot.showThrust
+                    }
+
+                    WebEngineView {
+                        id: topWebView
+                        x: 0
+                        y: 0
+                        width: 170
+                        height: 300
+                        z: 1
+                        backgroundColor: "transparent"
+                        visible: attitudeOverviewRoot.showThrust
+
+                        // Windows 투명 배경 렌더링 문제 해결
+                        layer.enabled: true
+                        layer.smooth: true
+
+                        url: Qt.resolvedUrl("./servo-graph.html")
+
+                        onLoadingChanged: function (loadRequest) {
+                            if (loadRequest.status === WebEngineView.LoadFailedStatus) {
+                                console.log("Top WebView - Failed to load:", loadRequest.errorString);
+                                attitudeOverviewRoot.servoHtmlLoaded = false;
+                            } else if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                                console.log("Top WebView - Successfully loaded");
+                                attitudeOverviewRoot.servoHtmlLoaded = true;
+                            }
+                        }
+                    }
                 }
 
                 // 체크박스 영역
@@ -184,6 +238,86 @@ ColumnLayout {
                             attitudeOverviewRoot.showHelperAxes = checked;
                         }
                     }
+
+                    CheckBox {
+                        id: thrustVectorCheckBox
+                        text: "추력벡터 표시"
+                        checked: true
+                        Material.accent: Colors.green
+
+                        contentItem: Text {
+                            text: thrustVectorCheckBox.text
+                            color: Colors.textPrimary
+                            font.pixelSize: 14
+                            leftPadding: thrustVectorCheckBox.indicator.width + thrustVectorCheckBox.spacing
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        onCheckedChanged: {
+                            attitudeOverviewRoot.showThrust = checked;
+                            console.log("showThrust:", attitudeOverviewRoot.showThrust);
+                        }
+                    }
+                }
+
+                // 버튼 영역
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 50
+                    spacing: 15
+
+                    // 우측 정렬을 위한 여백
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        id: invertRollButton
+                        text: "Roll 반전"
+
+                        background: Rectangle {
+                            implicitWidth: 100
+                            implicitHeight: 40
+                            color: invertRollButton.down ? Qt.darker(Colors.gray700, 1.1) : Colors.gray700
+                            radius: 8
+                        }
+
+                        onClicked: {
+                            attitudeOverviewRoot.rollDirection *= -1;
+                        }
+                    }
+
+                    Button {
+                        id: invertPitchButton
+                        text: "Pitch 반전"
+
+                        background: Rectangle {
+                            implicitWidth: 100
+                            implicitHeight: 40
+                            color: invertPitchButton.down ? Qt.darker(Colors.gray700, 1.1) : Colors.gray700
+                            radius: 8
+                        }
+
+                        onClicked: {
+                            attitudeOverviewRoot.pitchDirection *= -1;
+                        }
+                    }
+
+                    Button {
+                        id: invertYawButton
+                        text: "Yaw 반전"
+
+                        background: Rectangle {
+                            implicitWidth: 100
+                            implicitHeight: 40
+                            color: invertYawButton.down ? Qt.darker(Colors.gray700, 1.1) : Colors.gray700
+                            radius: 8
+                        }
+
+                        onClicked: {
+                            attitudeOverviewRoot.yawDirection *= -1;
+                        }
+                    }
                 }
 
                 // 그래프 영역
@@ -201,10 +335,10 @@ ColumnLayout {
                         onLoadingChanged: function (loadRequest) {
                             if (loadRequest.status === WebEngineView.LoadFailedStatus) {
                                 console.log("Failed to load:", loadRequest.errorString);
-                                attitudeOverviewRoot.htmlLoaded = false;
+                                attitudeOverviewRoot.graphHtmlLoaded = false;
                             } else if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                                 console.log("Successfully loaded HTML file");
-                                attitudeOverviewRoot.htmlLoaded = true;
+                                attitudeOverviewRoot.graphHtmlLoaded = true;
                             }
                         }
 

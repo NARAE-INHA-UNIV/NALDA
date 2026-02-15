@@ -9,10 +9,13 @@ Node {
     property real pitchAngle: 0
     property real yawAngle: 0
 
+    property var motorThrust: [0, 0, 0, 0]
+
     property bool showHelperAxes: true
+    property bool showThrust: true
 
     // Apply rotation based on input angles
-    eulerRotation: Qt.vector3d(- pitchAngle, - yawAngle, rollAngle)
+    eulerRotation: Qt.vector3d(-pitchAngle, -yawAngle, rollAngle)
 
     // 드론 모델 재질 개선
     PrincipledMaterial {
@@ -51,7 +54,7 @@ Node {
         emissiveFactor: Qt.vector3d(0.0, 0.0, 0.6)
     }
 
-    // roll axis 
+    // roll axis
     Model {
         id: rollAxis
         source: "#Cylinder"
@@ -83,6 +86,39 @@ Node {
         visible: showHelperAxes
     }
 
+    // motor thrust vectors
+    TrustVector {
+        id: frontLeftMotorThrust
+        showThrust: node.showThrust
+        thrustValue: motorThrustScaler(node.motorThrust[0])
+        posX: 61.5
+        posZ: 35.5
+    }
+
+    TrustVector {
+        id: frontRightMotorThrust
+        showThrust: node.showThrust
+        thrustValue: motorThrustScaler(node.motorThrust[1])
+        posX: -61.5
+        posZ: 35.5
+    }
+
+    TrustVector {
+        id: rearLeftMotorThrust
+        showThrust: node.showThrust
+        thrustValue: motorThrustScaler(node.motorThrust[2])
+        posX: 46
+        posZ: -55.5
+    }
+
+    TrustVector {
+        id: rearRightMotorThrust
+        showThrust: node.showThrust
+        thrustValue: motorThrustScaler(node.motorThrust[3])
+        posX: -46
+        posZ: -55.5
+    }
+
     // 드론 3D 모델
     Model {
         id: mavic
@@ -91,5 +127,14 @@ Node {
         scale: Qt.vector3d(30, 30, 30)
         position: Qt.vector3d(0, -30, 12)
         materials: [mavicMaterial]
+    }
+
+    function motorThrustScaler(value) {
+        // 1000~2000 to 0.0~1.0
+        if (value < 1000)
+            return 0.0;
+        if (value > 2000)
+            return 1.0;
+        return (value - 1000) / 1000.0;
     }
 }

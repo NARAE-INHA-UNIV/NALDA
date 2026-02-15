@@ -32,9 +32,9 @@ class DockableWidget(QWidget):
         for manager_name, manager in managers:
             context.setContextProperty(manager_name, manager)
 
-        # 전역 스타일 설정 (QML 로드 전에 설정)
-        styles_path = resource_path("frontend/styles")
+        # 전역 스타일 설정
         engine = self.qml_widget.engine()
+        styles_path = resource_path("frontend/styles")
         engine.addImportPath(styles_path)
 
         # qml 소스 등록
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         self.serial_manager.messageUpdated.connect(self.sensor_graph_manager.get_data)
         self.serial_manager.messageUpdated.connect(self.attitude_overview_manager.get_data)
         self.serial_manager.messageUpdated.connect(self.pfd_manager.get_data)
-        # self.serial_manager.messageUpdated.connect(self.gps_backend.get_data) # gps도 연결 필요
+        self.serial_manager.messageUpdated.connect(self.gps_manager.get_data)  # gps도 연결 필요
 
         # send 이벤트
         self.attitude_overview_manager.newPidGains.connect(self.serial_manager.send_message)
@@ -180,6 +180,7 @@ class MainWindow(QMainWindow):
             qml_path='frontend/pages/flight/pfd/index.qml',
             managers=[
                 ('pfdManager', self.pfd_manager),
+                ('serialManager', self.serial_manager),
             ]
         )
         self.dock_top_right.setWidget(widget_top_right)
