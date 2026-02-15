@@ -45,129 +45,146 @@ Rectangle {
         radius: 8
     }
 
-    // 수평계 (Artificial Horizon)
-    Rectangle {
-        id: horizon
+    // 수평계 컨테이너 (클리핑용)
+    Item {
+        id: horizonClipContainer
         anchors.fill: parent
-        // width: parent.width * 2
-        // height: parent.height * 2
-        anchors.centerIn: parent
         clip: true
 
-        // 수평계 크기가 변경될 때마다 다시 그리기
-        onWidthChanged: pitchGuidelines.requestPaint()
-        onHeightChanged: pitchGuidelines.requestPaint()
-
-        // 하늘색 부분 (위쪽)
+        // 수평계 (Artificial Horizon)
         Rectangle {
-            id: sky
-            width: parent.width
-            height: parent.height / 2
-            color: "#87CEEB"  // 하늘색
-            anchors.top: parent.top
-        }
+            id: horizon
+            width: parent.width * 2
+            height: parent.height * 2
+            anchors.centerIn: parent
+            color: "transparent"
 
-        // 갈색 부분 (아래쪽)
-        Rectangle {
-            id: ground
-            width: parent.width
-            height: parent.height / 2
-            color: "#8B4513"  // 갈색
-            anchors.bottom: parent.bottom
-        }
+            // 수평계 크기가 변경될 때마다 다시 그리기
+            onWidthChanged: pitchGuidelines.requestPaint()
+            onHeightChanged: pitchGuidelines.requestPaint()
 
-        // 피치 가이드라인
-        Canvas {
-            id: pitchGuidelines
-            anchors.fill: parent
+            // 하늘색 부분 (위쪽)
+            Rectangle {
+                id: sky
+                width: parent.width
+                height: parent.height / 2
+                color: "#87CEEB"  // 하늘색
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.verticalCenter
+            }
 
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.strokeStyle = "#FFFFFF";
-                ctx.lineWidth = 2;
-                ctx.fillStyle = "#FFFFFF";
-                ctx.font = Math.max(12, width / 80) + "px Arial";
-                ctx.textAlign = "center";
+            // 갈색 부분 (아래쪽)
+            Rectangle {
+                id: ground
+                width: parent.width
+                height: parent.height / 2
+                color: "#8B4513"  // 갈색
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.verticalCenter
+            }
 
-                var pitchOffset = (pfdRoot.pitchAngle / 10) * (height / 2);
-                var centerX = width / 2;
+            // 피치 가이드라인
+            Canvas {
+                id: pitchGuidelines
+                anchors.fill: parent
 
-                // 중심선
-                ctx.beginPath();
-                ctx.moveTo(0, height / 2 + pitchOffset);
-                ctx.lineTo(width, height / 2 + pitchOffset);
-                ctx.stroke();
+                onPaint: {
+                    var ctx = getContext("2d");
+                    ctx.strokeStyle = "#FFFFFF";
+                    ctx.lineWidth = 2;
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.font = Math.max(12, width / 80) + "px Arial";
+                    ctx.textAlign = "center";
 
-                for (var i = 1; i <= 7; i++) {
-                    var angle = i * 5;
-                    var y1 = height / 2 + pitchOffset - angle * (height / 2) / 30;
-                    var y2 = height / 2 + pitchOffset + angle * (height / 2) / 30;
-                    var isTenMultiple = (angle % 10 === 0);
-                    var lineLength = isTenMultiple ? 50 : 25;
-                    var endLineLength = Math.max(10, width / 40);
-                    var textOffset = 15;
+                    var centerX = width / 2;
+                    var centerY = height / 2;
 
-                    // alpha 계산: 0~20도 구간에서 1.0~0.1로 선형 감소, 20도 이상은 0.1 고정
-                    var alpha = 1.0;
-                    if (angle <= 20) {
-                        alpha = 1.0 - 0.9 * (angle / 20);
-                    } else {
-                        alpha = 0.1;
-                    }
-                    ctx.globalAlpha = alpha;
+                    // 중심선 (0도 - 수평선)
+                    ctx.beginPath();
+                    ctx.moveTo(0, centerY);
+                    ctx.lineTo(width, centerY);
+                    ctx.stroke();
 
-                    if (y1 > 0) {
-                        // 위쪽 가이드라인
-                        ctx.beginPath();
-                        ctx.moveTo(centerX - lineLength, y1);
-                        ctx.lineTo(centerX + lineLength, y1);
-                        ctx.stroke();
-                        // 가이드라인 끝의 작은 선
-                        ctx.beginPath();
-                        ctx.moveTo(centerX - lineLength, y1);
-                        ctx.lineTo(centerX - lineLength - endLineLength, y1);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(centerX + lineLength, y1);
-                        ctx.lineTo(centerX + lineLength + endLineLength, y1);
-                        ctx.stroke();
-                        // 10의 배수일 때 각도 표시
-                        if (isTenMultiple) {
-                            ctx.fillText(angle.toString(), centerX - lineLength - endLineLength - textOffset, y1 + 4);
-                            ctx.fillText(angle.toString(), centerX + lineLength + endLineLength + textOffset, y1 + 4);
+                    for (var i = 1; i <= 7; i++) {
+                        var angle = i * 5;
+                        // 피치 각도에 따른 눈금 간격 (10도당 height/2 픽셀)
+                        var pixelsPerDegree = (height / 2) / 30;
+                        var y1 = centerY - angle * pixelsPerDegree;  // 위쪽 (양의 피치)
+                        var y2 = centerY + angle * pixelsPerDegree;  // 아래쪽 (음의 피치)
+                        var isTenMultiple = (angle % 10 === 0);
+                        var lineLength = isTenMultiple ? 50 : 25;
+                        var endLineLength = Math.max(10, width / 40);
+                        var textOffset = 15;
+
+                        // alpha 계산: 0~20도 구간에서 1.0~0.1로 선형 감소, 20도 이상은 0.1 고정
+                        var alpha = 1.0;
+                        if (angle <= 20) {
+                            alpha = 1.0 - 0.9 * (angle / 20);
+                        } else {
+                            alpha = 0.1;
                         }
-                    }
-                    if (y2 < height) {
-                        // 아래쪽 가이드라인
-                        ctx.beginPath();
-                        ctx.moveTo(centerX - lineLength, y2);
-                        ctx.lineTo(centerX + lineLength, y2);
-                        ctx.stroke();
-                        // 가이드라인 끝의 작은 선
-                        ctx.beginPath();
-                        ctx.moveTo(centerX - lineLength, y2);
-                        ctx.lineTo(centerX - lineLength - endLineLength, y2);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(centerX + lineLength, y2);
-                        ctx.lineTo(centerX + lineLength + endLineLength, y2);
-                        ctx.stroke();
-                        // 10의 배수일 때 각도 표시
-                        if (isTenMultiple) {
-                            ctx.fillText(angle.toString(), centerX - lineLength - endLineLength - textOffset, y2 + 4);
-                            ctx.fillText(angle.toString(), centerX + lineLength + endLineLength + textOffset, y2 + 4);
+                        ctx.globalAlpha = alpha;
+
+                        if (y1 > 0) {
+                            // 위쪽 가이드라인 (양의 피치)
+                            ctx.beginPath();
+                            ctx.moveTo(centerX - lineLength, y1);
+                            ctx.lineTo(centerX + lineLength, y1);
+                            ctx.stroke();
+                            // 가이드라인 끝의 작은 선
+                            ctx.beginPath();
+                            ctx.moveTo(centerX - lineLength, y1);
+                            ctx.lineTo(centerX - lineLength - endLineLength, y1);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(centerX + lineLength, y1);
+                            ctx.lineTo(centerX + lineLength + endLineLength, y1);
+                            ctx.stroke();
+                            // 10의 배수일 때 각도 표시
+                            if (isTenMultiple) {
+                                ctx.fillText(angle.toString(), centerX - lineLength - endLineLength - textOffset, y1 + 4);
+                                ctx.fillText(angle.toString(), centerX + lineLength + endLineLength + textOffset, y1 + 4);
+                            }
                         }
+                        if (y2 < height) {
+                            // 아래쪽 가이드라인 (음의 피치)
+                            ctx.beginPath();
+                            ctx.moveTo(centerX - lineLength, y2);
+                            ctx.lineTo(centerX + lineLength, y2);
+                            ctx.stroke();
+                            // 가이드라인 끝의 작은 선
+                            ctx.beginPath();
+                            ctx.moveTo(centerX - lineLength, y2);
+                            ctx.lineTo(centerX - lineLength - endLineLength, y2);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(centerX + lineLength, y2);
+                            ctx.lineTo(centerX + lineLength + endLineLength, y2);
+                            ctx.stroke();
+                            // 10의 배수일 때 각도 표시 (음수로 표시)
+                            if (isTenMultiple) {
+                                ctx.fillText((-angle).toString(), centerX - lineLength - endLineLength - textOffset, y2 + 4);
+                                ctx.fillText((-angle).toString(), centerX + lineLength + endLineLength + textOffset, y2 + 4);
+                            }
+                        }
+                        ctx.globalAlpha = 1.0; // alpha 초기화
                     }
-                    ctx.globalAlpha = 1.0; // alpha 초기화
                 }
             }
-        }
 
-        // 롤 각도에 따른 회전
-        transform: Rotation {
-            origin.x: horizon.width / 2
-            origin.y: horizon.height / 2
-            angle: -pfdRoot.rollAngle
+            // 롤 각도와 피치 각도에 따른 변환
+            transform: [
+                // 피치 각도에 따른 수직 이동 (10도당 height/2 픽셀), / 3으로 나눠서 이동량 줄임
+                Translate {
+                    y: (pfdRoot.pitchAngle / 10) * (horizon.height / 2 / 3)
+                },
+                // 롤 각도에 따른 회전
+                Rotation {
+                    origin.x: horizon.width / 2
+                    origin.y: horizon.height / 2
+                    angle: -pfdRoot.rollAngle
+                }
+            ]
         }
     }
 
@@ -180,6 +197,16 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: -90
         z: 10
+
+        // 롤 각도에 따라 다이얼도 함께 회전
+        transform: Rotation {
+            origin.x: rollDial.width / 2
+            origin.y: rollDial.height * 0.95
+            angle: -pfdRoot.rollAngle
+        }
+
+        Component.onCompleted: requestPaint()
+
         onPaint: {
             var ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
@@ -216,9 +243,32 @@ Rectangle {
                 var labelY = centerY - Math.sin(rad) * (radius + 22);
                 ctx.fillText(Math.abs(deg).toString(), labelX, labelY + 5);
             }
-            // 현재 롤 각도 인디케이터(삼각형)
+            ctx.restore();
+        }
+    }
+
+    // 롤 각도 인디케이터 화살표 (고정 위치)
+    Canvas {
+        id: rollIndicator
+        width: 350
+        height: 220
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: -90
+        z: 11
+
+        Component.onCompleted: requestPaint()
+
+        onPaint: {
+            var ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            var centerX = width / 2;
+            var centerY = height * 0.95;
+            var radius = Math.min(width, height * 2) / 2 - 8;
+
+            // 화살표는 항상 0도 위치(정중앙 위)에 고정
             ctx.save();
-            var rollRad = (Math.PI / 2) - (pfdRoot.rollAngle * Math.PI / 180);
+            var rollRad = Math.PI / 2; // 항상 0도 위치
 
             // 화살표 꼭짓점(0 바로 아래)
             var tipX = centerX + Math.cos(rollRad) * (radius + 22);
@@ -423,7 +473,7 @@ Rectangle {
         }
     }
 
-    // 최상단 Yaw(Heading) 테이프
+    // Yaw(Heading) 테이프
     Item {
         id: headingTape
         width: parent.width
@@ -431,6 +481,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         z: 100
+        clip: true
         // 눈금 표시
         Canvas {
             id: headingScale
@@ -483,45 +534,42 @@ Rectangle {
                     var relativePos = currentDeg - centerHeading;
                     var x = centerX + relativePos * degPerPx;
 
-                    if (x >= 30 && x <= width - 30) {
-                        // 가장자리 여백 확보
-                        // 15도 간격 눈금은 더 길게
-                        ctx.strokeStyle = "#fff";
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(x, 0);
-                        ctx.lineTo(x, 18);
-                        ctx.stroke();
+                    // 15도 간격 눈금은 더 길게
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, 18);
+                    ctx.stroke();
 
-                        // 숫자/문자 표시
-                        ctx.font = "bold 16px Arial";
-                        ctx.fillStyle = "#fff";
-                        ctx.textAlign = "center";
-                        var label = "";
-                        if (normalizedDeg === 0)
-                            label = "N";
-                        else if (normalizedDeg === 90)
-                            label = "E";
-                        else if (normalizedDeg === 180)
-                            label = "S";
-                        else if (normalizedDeg === 270)
-                            label = "W";
-                        else if (normalizedDeg === 45)
-                            label = "NE";
-                        else if (normalizedDeg === 135)
-                            label = "SE";
-                        else if (normalizedDeg === 225)
-                            label = "SW";
-                        else if (normalizedDeg === 315)
-                            label = "NW";
-                        else if (normalizedDeg % 30 === 0)
-                            label = normalizedDeg.toString();
-                        else
-                            // 30도 배수는 숫자로
-                            label = normalizedDeg.toString(); // 나머지 15도 간격도 숫자로 표시
+                    // 숫자/문자 표시 - clip에 의해 자동으로 잘림
+                    ctx.font = "bold 16px Arial";
+                    ctx.fillStyle = "#fff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "top";
+                    var label = "";
+                    if (normalizedDeg === 0)
+                        label = "N";
+                    else if (normalizedDeg === 90)
+                        label = "E";
+                    else if (normalizedDeg === 180)
+                        label = "S";
+                    else if (normalizedDeg === 270)
+                        label = "W";
+                    else if (normalizedDeg === 45)
+                        label = "NE";
+                    else if (normalizedDeg === 135)
+                        label = "SE";
+                    else if (normalizedDeg === 225)
+                        label = "SW";
+                    else if (normalizedDeg === 315)
+                        label = "NW";
+                    else if (normalizedDeg % 30 === 0)
+                        label = normalizedDeg.toString();
+                    else
+                        label = normalizedDeg.toString();
 
-                        ctx.fillText(label, x, 36);
-                    }
+                    ctx.fillText(label, x, 20);
                 }
 
                 // 중앙 박스 (검은색, 불투명) - 높이를 반으로 줄이고 하단에 배치
@@ -564,14 +612,14 @@ Rectangle {
     }
 
     // 시뮬레이션 토글 버튼 (우측 상단)
-    // Button {
-    //     id: simToggleBtn
-    //     text: "시뮬레이션 시작/정지"
-    //     anchors.top: parent.top
-    //     anchors.right: parent.right
-    //     anchors.bottomMargin: 16
-    //     anchors.rightMargin: 16
-    //     z: 200
-    //     onClicked: pfdManager.toggleSimulation()
-    // }
+    Button {
+        id: simToggleBtn
+        text: "시뮬레이션 시작/정지"
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottomMargin: 16
+        anchors.rightMargin: 16
+        z: 200
+        onClicked: pfdManager.toggleSimulation()
+    }
 }
