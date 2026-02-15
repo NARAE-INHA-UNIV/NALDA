@@ -175,6 +175,7 @@ class MainWindow(QMainWindow):
             qml_path='frontend/pages/flight/pfd/index.qml',
             managers=[
                 ('pfdManager', self.pfd_manager),
+                ('serialManager', self.serial_manager),
             ]
         )
         self.dock_top_right.setWidget(widget_top_right)
