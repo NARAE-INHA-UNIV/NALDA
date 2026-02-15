@@ -7,20 +7,6 @@ import Colors 1.0
 Rectangle {
     id: root
     color: "#1a1a1a"
-    
-    // --- Internal Properties for Data Binding ---
-    property bool connected: false
-    property int lastHeartbeatTime: 0
-    property bool isArmed: false
-    property string flightMode: "Unknown"
-    
-    // Battery
-    property int batteryRemaining: 0   // %
-    property real batteryVoltage: 0.0  // V
-    property real batteryCurrent: 0.0  // A
-    
-    // Motors (1000~2000 us) -> Normalized 0.0~1.0
-    property var motorValues: [0, 0, 0, 0] 
 
     // --- Internal Properties for Data Binding ---
     property bool connected: false
@@ -1102,7 +1088,6 @@ Rectangle {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
-                         Item { Layout.fillHeight: true }
                     }
                 }
             }
