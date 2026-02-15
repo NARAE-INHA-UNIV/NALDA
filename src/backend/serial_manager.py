@@ -37,6 +37,10 @@ class SerialManager(QObject):
         self.data_reading_thread = None
         self.data_reading_thread_stop_flag = threading.Event()
 
+# Heartbeat 전송 스레드 관리 (PX4 전용)
+        self.heartbeat_thread = None
+        self.heartbeat_thread_stop_flag = threading.Event()
+
         # 메시지 통계 추적 (msg_id: {'count': int, 'start_time': float})
         self.message_stats = {}
 
@@ -85,6 +89,10 @@ class SerialManager(QObject):
             self.data_reading_thread_stop_flag = threading.Event()
             if is_px4:
                 self.data_reading_thread = threading.Thread(target=self._getSensorDataPX4, daemon=True)
+                # Heartbeat 전송 스레드 시작
+                self.heartbeat_thread_stop_flag = threading.Event()
+                self.heartbeat_thread = threading.Thread(target=self._sendHeartbeat, daemon=True)
+                self.heartbeat_thread.start()
             else:
                 self.data_reading_thread = threading.Thread(target=self._getSensorDataFC, daemon=True)
             self.data_reading_thread.start()
@@ -122,6 +130,12 @@ class SerialManager(QObject):
             self.data_reading_thread_stop_flag = threading.Event()
             self.data_reading_thread = threading.Thread(target=self._getSensorDataPX4, daemon=True)
             self.data_reading_thread.start()
+
+            # Heartbeat 전송 스레드 시작
+            self.heartbeat_thread_stop_flag = threading.Event()
+            self.heartbeat_thread = threading.Thread(target=self._sendHeartbeat, daemon=True)
+            self.heartbeat_thread.start()
+
             return True
         except Exception as e:
             error_msg = f"UDP 연결 실패: {str(e)}"
@@ -158,7 +172,7 @@ class SerialManager(QObject):
         예외가 발생하면 상위 클래스에서 처리하도록 합니다.
         """
 
-        self.mavlink = mavutil.mavlink_connection(port, baud=baudrate)
+        self.mavlink = mavutil.mavlink_connection(port, baud=baudrate, source_system=255)
 
         # 연결 확인 코드
         heartbeat = self.mavlink.wait_heartbeat(timeout=2)
@@ -172,7 +186,7 @@ class SerialManager(QObject):
         예외가 발생하면 상위 클래스에서 처리하도록 합니다.
         """
 
-        self.mavlink = mavutil.mavlink_connection(f'udpin:{ip}:{port}')
+        self.mavlink = mavutil.mavlink_connection(f'udpin:{ip}:{port}', source_system=255)
 
         # 연결 확인 코드
         heartbeat = self.mavlink.wait_heartbeat(timeout=2)
@@ -238,6 +252,28 @@ class SerialManager(QObject):
             self.baudrate = None
             return
 
+    def _sendHeartbeat(self):
+        """
+        PX4에 1초마다 Heartbeat 메시지를 전송하는 스레드
+        지상관제 시스템으로 인식되도록 함
+        """
+        try:
+            while not self.heartbeat_thread_stop_flag.is_set():
+                if self.mavlink:
+                    # MAV_TYPE_GCS (지상관제), MAV_AUTOPILOT_INVALID, base_mode=0, custom_mode=0, system_status=MAV_STATE_ACTIVE
+                    self.mavlink.mav.heartbeat_send(
+                        mavutil.mavlink.MAV_TYPE_GCS,  # type: GCS (Ground Control Station)
+                        mavutil.mavlink.MAV_AUTOPILOT_INVALID,  # autopilot
+                        0,  # base_mode
+                        0,  # custom_mode
+                        mavutil.mavlink.MAV_STATE_ACTIVE  # system_status
+                    )
+                # 1초 대기 (stop_flag 체크하면서)
+                self.heartbeat_thread_stop_flag.wait(1.0)
+        except Exception as e:
+            print(f"[Heartbeat Thread] 오류 발생: {str(e)}")
+            return
+
     def _update_message_stats(self, msg_id: int):
         """
         메시지 통계 업데이트 (count, start_time)
@@ -277,9 +313,14 @@ class SerialManager(QObject):
 
         # 스레드 종료를 위한 이벤트 설정
         self.data_reading_thread_stop_flag.set()
+        if self.is_px4 and self.heartbeat_thread is not None:
+            self.heartbeat_thread_stop_flag.set()
 
         # 스레드 종료 대기
-        self.data_reading_thread.join()
+        if self.data_reading_thread is not None:
+            self.data_reading_thread.join()
+        if self.is_px4 and self.heartbeat_thread is not None:
+            self.heartbeat_thread.join()
 
         # 시리얼 연결 해제
         if self.is_px4:
@@ -293,8 +334,9 @@ class SerialManager(QObject):
         self.mavlink = None
         self.port = None
         self.baudrate = None
+        self.heartbeat_thread = None
         self.message_stats = {}  # 통계 초기화
-        print("PX4 시리얼 연결이 해제되었습니다.")
+        print("시리얼 연결이 해제되었습니다.")
         return True
 
     @Slot(result=bool)
@@ -305,15 +347,21 @@ class SerialManager(QObject):
 
         # 스레드 종료를 위한 이벤트 설정
         self.data_reading_thread_stop_flag.set()
+        if self.heartbeat_thread is not None:
+            self.heartbeat_thread_stop_flag.set()
 
         # 스레드 종료 대기
-        self.data_reading_thread.join()
+        if self.data_reading_thread is not None:
+            self.data_reading_thread.join()
+        if self.heartbeat_thread is not None:
+            self.heartbeat_thread.join()
 
         # UDP 연결 해제
         self.mavlink.close()
         self.mavlink = None
         self.udp_ip = None
         self.udp_port = None
+        self.heartbeat_thread = None
         self.message_stats = {}  # 통계 초기화
         print("PX4 UDP 연결이 해제되었습니다.")
         return True
@@ -380,3 +428,167 @@ class SerialManager(QObject):
             print(f"메시지 {msg_id} 전송 성공: {data}")
         except Exception as e:
             print(f"메시지 전송 실패: {str(e)}")
+
+    @Slot(bool)
+    def sendArmCommand(self, arm: bool):
+        """
+        드론 ARM/DISARM 명령 전송
+        """
+        if not self.mavlink:
+            print("MAVLink 연결이 없습니다.")
+            return
+
+        try:
+            # 먼저 Guided 모드로 변경 (arm 시에만)
+            if arm:
+                self.mavlink.mav.set_mode_send(
+                    self.mavlink.target_system,
+                    mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                    4  # PX4: 4 = AUTO.TAKEOFF, GUIDED
+                )
+                print(f"모드 변경 명령 전송 (GUIDED)")
+                time.sleep(0.1)  # 모드 변경 대기
+
+            self.mavlink.mav.command_long_send(
+                self.mavlink.target_system,
+                self.mavlink.target_component,
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0,  # confirmation
+                1 if arm else 0,  # param1: 1=arm, 0=disarm
+                21196 if arm else 0,  # param2: 강제 arm (21196 = force arm)
+                0, 0, 0, 0, 0  # param3-7
+            )
+            print(f"{'ARM' if arm else 'DISARM'} 명령 전송 (target_system={self.mavlink.target_system}, target_component={self.mavlink.target_component})")
+
+            # 명령 응답 대기
+            ack = self.mavlink.recv_match(type='COMMAND_ACK', blocking=True, timeout=3)
+            if ack:
+                print(f"ARM 명령 응답: result={ack.result} (0=성공, 1=임시거부, 2=거부, 3=지원안함, 4=실패, 5=진행중)")
+        except Exception as e:
+            print(f"ARM 명령 전송 실패: {str(e)}")
+
+    @Slot(float)
+    def sendTakeoffCommand(self, altitude: float):
+        """
+        이륙 모드로 변경 (AUTO.TAKEOFF)
+        """
+        if not self.mavlink:
+            print("MAVLink 연결이 없습니다.")
+            return
+
+        # PX4 AUTO.TAKEOFF 모드로 전환
+        # Custom mode = (sub_mode << 24) | (main_mode << 16)
+        # AUTO(4).TAKEOFF(2) = (2 << 24) | (4 << 16) = 0x02040000
+        custom_mode = (2 << 24) | (4 << 16)  # 33685504
+
+        try:
+            # AUTO.TAKEOFF 모드로 변경 (PX4 custom_mode = 10)
+            self.mavlink.mav.set_mode_send(
+                self.mavlink.target_system,
+                mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                custom_mode
+            )
+            print(f"TAKEOFF 모드 변경 명령 전송 (target_system={self.mavlink.target_system})")
+
+            # 모드 변경 응답 대기
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"TAKEOFF 모드 변경 실패: {str(e)}")
+
+    @Slot()
+    def sendLandCommand(self):
+        """
+        착륙 모드로 변경 (AUTO.LAND)
+        """
+        if not self.mavlink:
+            print("MAVLink 연결이 없습니다.")
+            return
+
+        # PX4 AUTO.LAND 모드로 전환
+        # Custom mode = (sub_mode << 24) | (main_mode << 16)
+        # AUTO(4).LAND(6) = (6 << 24) | (4 << 16) = 0x06040000
+        custom_mode = (6 << 24) | (4 << 16)  # 100663296
+
+        try:
+            # AUTO.LAND 모드로 변경 (PX4 custom_mode = 11)
+            self.mavlink.mav.set_mode_send(
+                self.mavlink.target_system,
+                mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                custom_mode
+            )
+            print(f"LAND 모드 변경 명령 전송 (target_system={self.mavlink.target_system})")
+
+            # 모드 변경 응답 대기
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"LAND 모드 변경 실패: {str(e)}")
+
+    @Slot()
+    def sendReturnCommand(self):
+        """
+        RTL (Return to Launch) 명령 전송
+        """
+        if not self.mavlink:
+            print("MAVLink 연결이 없습니다.")
+            return
+
+        try:
+            self.mavlink.mav.command_long_send(
+                self.mavlink.target_system,
+                self.mavlink.target_component,
+                mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,
+                0,  # confirmation
+                0, 0, 0, 0, 0, 0, 0
+            )
+            print(
+                f"RETURN TO LAUNCH 명령 전송 (target_system={self.mavlink.target_system}, target_component={self.mavlink.target_component})")
+
+            # 명령 응답 대기
+            ack = self.mavlink.recv_match(type='COMMAND_ACK', blocking=True, timeout=3)
+            if ack:
+                print(f"RTL 명령 응답: result={ack.result} (0=성공, 1=임시거부, 2=거부, 3=지원안함, 4=실패, 5=진행중)")
+        except Exception as e:
+            print(f"RTL 명령 전송 실패: {str(e)}")
+
+    @Slot(str)
+    def setFlightMode(self, mode: str):
+        """
+        비행 모드 변경
+        """
+        if not self.mavlink:
+            print("MAVLink 연결이 없습니다.")
+            return
+
+        # PX4 custom mode 매핑
+        mode_map = {
+            'MANUAL': 1,
+            'STABILIZED': 2,
+            'ACRO': 3,
+            'RATTITUDE': 4,
+            'ALTCTL': 5,
+            'POSCTL': 6,
+            'LOITER': 7,
+            'MISSION': 8,
+            'RTL': 9,
+            'TAKEOFF': 10,
+            'LAND': 11,
+            'RTGS': 12,
+            'FOLLOWME': 13,
+            'OFFBOARD': 14,
+        }
+
+        if mode not in mode_map:
+            print(f"알 수 없는 모드: {mode}")
+            return
+
+        try:
+            custom_mode = mode_map[mode]
+            self.mavlink.mav.set_mode_send(
+                self.mavlink.target_system,
+                mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                custom_mode
+            )
+            print(f"{mode} 모드 변경 명령 전송 (custom_mode={custom_mode})")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"{mode} 모드 변경 실패: {str(e)}")

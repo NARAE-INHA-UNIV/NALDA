@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
             qml_path='frontend/pages/flight/etc-panels/index.qml',
             managers=[
                 ('gpsManager', self.gps_manager),
+                ('serialManager', self.serial_manager),
             ]
         )
         self.dock_bottom_right.setWidget(widget_bottom_right)
