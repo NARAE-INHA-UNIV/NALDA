@@ -51,7 +51,7 @@ Rectangle {
             maskSource: Rectangle {
                 width: pfdRoot.width
                 height: pfdRoot.height
-                radius: 8
+                radius: 12
             }
         }
 
