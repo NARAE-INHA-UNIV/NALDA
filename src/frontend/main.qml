@@ -20,11 +20,11 @@ Rectangle {
             source: "pages/setup/index.qml",
             icon: "assets/icons/sidebar/usb.svg"
         },
-        {
-            name: "PLAN",
-            source: "pages/plan/index.qml",
-            icon: "assets/icons/sidebar/map.svg"
-        },
+        // {
+        //     name: "PLAN",
+        //     source: "pages/plan/index.qml",
+        //     icon: "assets/icons/sidebar/map.svg"
+        // },
         {
             name: "FLIGHT",
             source: "pages/flight/index.qml",
