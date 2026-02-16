@@ -21,7 +21,7 @@ class AttitudeOverviewManager(QObject):
         self.xmlHandler.loadMessageListFromXML({})
 
         # # Location History 창을 관리하기 위한 변수
-        self.pid_tunner_window = PIDTunnerWindow(self)
+        self.pid_tunner_window = PIDTunnerWindow()
         self.pid_tunner_window.hide()
         # self.pid_tunner_window.show()
 

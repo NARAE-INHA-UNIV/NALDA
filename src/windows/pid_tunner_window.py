@@ -8,7 +8,7 @@ from backend.utils import resource_path
 class PIDTunnerWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("PID 제어기 튜닝")
+        self.setWindowTitle("PID Gain Tunner")
         self.resize(600, 500)
 
         self.qml_widget = QQuickWidget()
