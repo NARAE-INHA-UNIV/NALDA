@@ -1,10 +1,13 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import Qt5Compat.GraphicalEffects
+import Colors 1.0
 
 Rectangle {
     id: pfdRoot
     anchors.fill: parent
+    color: Colors.backgroundPrimary
 
     Connections {
         target: serialManager
@@ -41,6 +44,16 @@ Rectangle {
     PrimaryFlightDisplay {
         id: pfd
         anchors.fill: parent
+
+        layer.enabled: true
+        layer.smooth: true
+        layer.effect: OpacityMask {
+            maskSource: Rectangle {
+                width: pfdRoot.width
+                height: pfdRoot.height
+                radius: 8
+            }
+        }
 
         // 초기값
         pitch: 0

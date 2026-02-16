@@ -15,7 +15,7 @@ Map {
         maskSource: Rectangle {
             width: map.width
             height: map.height
-            radius: 6
+            radius: 8
         }
     }
     plugin: Plugin {

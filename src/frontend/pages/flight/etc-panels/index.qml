@@ -6,14 +6,13 @@ import Colors 1.0
 // Drone Status & Control Panel
 Rectangle {
     id: root
-    color: "#1a1a1a"
+    color: Colors.backgroundPrimary
 
     // --- Internal Properties for Data Binding ---
     property bool connected: false
-    property int lastHeartbeatTime: 0
+    property real lastHeartbeatTime: 0
     property bool isArmed: false
     property int landedState: 0
-    property string flightMode: "Unknown"
 
     property var stateList: [
         {
@@ -161,7 +160,7 @@ Rectangle {
             borderColor: '#2196F3'
         },
     ]
-    property int modeId: 13
+    property int modeId: 1
 
     property var vtolStateList: [
         {
@@ -198,12 +197,12 @@ Rectangle {
     property int vtolStateId: 1
 
     // Battery
-    property int batteryRemaining: 65   // %
-    property real batteryVoltage: 22.4  // V
+    property int batteryRemaining: 0   // %
+    property real batteryVoltage: 0.0  // V
     property real batteryCurrent: 0.0  // A
 
     // Motors (1000~2000 us) -> Normalized 0.0~1.0
-    property var motorValues: [1500, 1240, 1900, 1200]
+    property var motorValues: [0, 0, 0, 0]
 
     // Constants
     readonly property int timeoutMs: 3000
@@ -221,14 +220,6 @@ Rectangle {
 
                 var baseMode = msg.base_mode;
                 root.isArmed = (baseMode & 128) !== 0;
-
-                // For now, keep simple Connected/Armed display
-                // If we get proper mode strings later, we can update this
-                if (root.flightMode === "Unknown" || root.flightMode === "DISCONNECTED") {
-                    root.flightMode = (baseMode & 128) ? "ARMED" : "DISARMED";
-                } else {
-                    root.flightMode = (baseMode & 128) ? "ARMED" : "DISARMED";
-                }
 
                 updateState();
             }
@@ -266,29 +257,26 @@ Rectangle {
     }
 
     // --- Connection Timeout Logic ---
-    // Timer {
-    //     interval: 500
-    //     running: true
-    //     repeat: true
-    //     onTriggered: {
-    //         var currentTime = new Date().getTime();
-    //         if (currentTime - root.lastHeartbeatTime > root.timeoutMs) {
-    //             root.connected = false;
-    //             root.batteryRemaining = 0;
-    //             root.batteryVoltage = 0.0;
-    //             root.motorValues = [0, 0, 0, 0];
-    //             root.flightMode = "DISCONNECTED";
-    //             root.isArmed = false;
-    //             root.lastHeartbeatTime = currentTime;
-    //             console.log("Connection timed out. Marking as disconnected.");
-    //         }
-    //     }
-    // }
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            var currentTime = new Date().getTime();
+            if (currentTime - root.lastHeartbeatTime > root.timeoutMs) {
+                root.connected = false;
+                root.batteryRemaining = 0;
+                root.batteryVoltage = 0.0;
+                root.motorValues = [0, 0, 0, 0];
+                root.isArmed = false;
+                console.log("Connection timed out. Marking as disconnected.");
+            }
+        }
+    }
 
     // --- UI Layout ---
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 10
         spacing: 10
 
         // 1. LEFT PANEL: Mode Selection (Vertical List)
