@@ -29,28 +29,14 @@ ColumnLayout {
     property bool showHelperAxes: true
     property bool showThrust: true
 
-    // graphHtmlLoaded 변경 감지 핸들러 추가
-    // 30번 ATTITUDE를 받아오도록 수정
+    // graphHtmlLoaded 변경 감지 핸들러
     onGraphHtmlLoadedChanged: {
         if (graphHtmlLoaded) {
-            var metaData = attitudeOverviewManager.setTargetMessage(attitudeOverviewRoot.attitudeMessageId);
+            attitudeOverviewRoot.messageFrame = attitudeOverviewManager.getMessageFields();
 
-            // 단위를 rad에서 degree로 변환
-            for (var i = 0; i < metaData.fields.length; i++) {
-                if (metaData.fields[i].units === "rad") {
-                    metaData.fields[i].units = "degree";
-                }
-                if (metaData.fields[i].units === "rad/s") {
-                    metaData.fields[i].units = "degree/s";
-                }
-            }
-
-            attitudeOverviewRoot.messageFrame = metaData.fields;
-
-            var hz = serialManager.getMessageHz(attitudeOverviewRoot.attitudeMessageId);
             var dataToSend = {
                 fields: attitudeOverviewRoot.messageFrame,
-                hz: hz
+                hz: 15
             };
             var jsCode = `window.receiveGraphMetaData(${JSON.stringify(dataToSend)});`;
             webView.runJavaScript(jsCode);
@@ -61,36 +47,32 @@ ColumnLayout {
     Connections {
         target: attitudeOverviewManager
 
-        function onMessageUpdated(message_id, data) {
-            if (message_id === 30) {
-                // ATTITUDE
-                // 30번 ATTITUDE 값은 rad 이므로 변환
-                data.roll = data.roll * 180 / 3.14592;
-                data.pitch = data.pitch * 180 / 3.14592;
-                data.yaw = data.yaw * 180 / 3.14592;
-
-                // 3D 모델 자세 업데이트
+        function onGraphDataUpdated(data) {
+            // 3D 모델 자세 업데이트
+            if (data.roll !== undefined) {
                 attitudeOverviewRoot.rollAngle = data.roll;
                 attitudeOverviewRoot.pitchAngle = data.pitch;
                 attitudeOverviewRoot.yawAngle = data.yaw;
+            }
 
-                // HTML이 완전히 로드된 경우에만 그래프 업데이트
-                if (attitudeOverviewRoot.graphHtmlLoaded) {
-                    var jsCode = `window.receiveData(${JSON.stringify(data)});`;
-                    webView.runJavaScript(jsCode);
-                } else {
-                    console.log("HTML이 아직 로드되지 않았습니다.");
-                }
-            } else if (message_id === 36) {
-                // SERVO_OUTPUT_RAW
+            // 서보 모터 사분할 그래프 업데이트
+            if (data.servo1_raw !== undefined) {
                 attitudeOverviewRoot.motorThrust = [data.servo1_raw, data.servo2_raw, data.servo3_raw, data.servo4_raw];
+            }
+            if (attitudeOverviewRoot.servoHtmlLoaded) {
+                var jsCode = `window.updateAllMotors(${JSON.stringify(attitudeOverviewRoot.motorThrust)});`;
+                topWebView.runJavaScript(jsCode);
+            } else {
+                console.log("서보 HTML이 아직 로드되지 않았습니다.");
+            }
 
-                if (attitudeOverviewRoot.servoHtmlLoaded) {
-                    var jsCode = `window.updateAllMotors(${JSON.stringify(attitudeOverviewRoot.motorThrust)});`;
-                    topWebView.runJavaScript(jsCode);
-                } else {
-                    console.log("서보 HTML이 아직 로드되지 않았습니다.");
-                }
+            // 그래프 업데이트
+            // HTML이 완전히 로드된 경우에만 업데이트
+            if (attitudeOverviewRoot.graphHtmlLoaded) {
+                var jsCode = `window.receiveData(${JSON.stringify(data)});`;
+                webView.runJavaScript(jsCode);
+            } else {
+                console.log("HTML이 아직 로드되지 않았습니다.");
             }
         }
     }
@@ -355,7 +337,7 @@ ColumnLayout {
                 // 그래프 영역
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 450 * 2 // 그래프 개수
+                    Layout.preferredHeight: 450 * 3 // 그래프 개수
                     Layout.topMargin: 30
 
                     WebEngineView {

@@ -7,7 +7,7 @@ from windows.pid_tunner_window import PIDTunnerWindow
 
 
 class AttitudeOverviewManager(QObject):
-    messageUpdated = Signal(int, dict)  # 메시지 업데이트 시그널
+    graphDataUpdated = Signal(dict)  # 메시지 업데이트 시그널
     newPidGains = Signal(int, list, bool)     # 새로운 PID 게인 시그널
 
     def __init__(self):
@@ -15,6 +15,33 @@ class AttitudeOverviewManager(QObject):
         self.target_message_ids = [
             30,  # ATTITUDE
             36,  # SERVO_OUTPUT_RAW
+        ]
+
+        self.message_data_frame = {
+            'time_usec': 0,
+            'roll': None,
+            'pitch': None,
+            'yaw': None,
+            'rollspeed': None,
+            'pitchspeed': None,
+            'yawspeed': None,
+            'servo1_raw': None,
+            'servo2_raw': None,
+            'servo3_raw': None,
+            'servo4_raw': None,
+        }
+        self.message_fields = [
+            {'type': 'uint32_t', 'name': 'time_usec',  'plot': True, 'units': 'us'},
+            {'type': 'float', 'name': 'roll',  'plot': True, 'units': 'degree'},
+            {'type': 'float', 'name': 'pitch',  'plot': True, 'units': 'degree'},
+            {'type': 'float', 'name': 'yaw',  'plot': True, 'units': 'degree'},
+            {'type': 'float', 'name': 'rollspeed',  'plot': True, 'units': 'degree/s'},
+            {'type': 'float', 'name': 'pitchspeed',  'plot': True, 'units': 'degree/s'},
+            {'type': 'float', 'name': 'yawspeed',  'plot': True, 'units': 'degree/s'},
+            {'type': 'uint16_t', 'name': 'servo1_raw',  'plot': True, 'units': ''},
+            {'type': 'uint16_t', 'name': 'servo2_raw',  'plot': True, 'units': ''},
+            {'type': 'uint16_t', 'name': 'servo3_raw',  'plot': True, 'units': ''},
+            {'type': 'uint16_t', 'name': 'servo4_raw',  'plot': True, 'units': ''},
         ]
 
         self.xmlHandler = XmlHandler()
@@ -31,25 +58,27 @@ class AttitudeOverviewManager(QObject):
         SerialManager에 메시지가 전달되면 호출되는 슬롯
         """
         if message_id in self.target_message_ids:
-            self.messageUpdated.emit(message_id, data)
+            result = self.message_data_frame.copy()  # 기존 프레임을 복사하여 초기화
+            if message_id == 30:  # ATTITUDE
+                result['time_usec'] = data.get('time_boot_ms', 0) * 1000  # ms를 us로 변환
+                result['roll'] = data.get('roll', None) * 57.2958  # 라디안을 도로 변환
+                result['pitch'] = data.get('pitch', None) * 57.2958
+                result['yaw'] = data.get('yaw', None) * 57.2958
+                result['rollspeed'] = data.get('rollspeed', None) * 57.2958
+                result['pitchspeed'] = data.get('pitchspeed', None) * 57.2958
+                result['yawspeed'] = data.get('yawspeed', None) * 57.2958
+            elif message_id == 36:  # SERVO_OUTPUT_RAW
+                result['time_usec'] = data.get('time_usec', 0)
+                result['servo1_raw'] = data.get('servo1_raw', None)
+                result['servo2_raw'] = data.get('servo2_raw', None)
+                result['servo3_raw'] = data.get('servo3_raw', None)
+                result['servo4_raw'] = data.get('servo4_raw', None)
 
-    @Slot(int, result=dict)
-    def setTargetMessage(self, message_id: int):
-        # 해당 메시지의 모든 속성을 가져와서 QML에 전달
-        instance = self.xmlHandler.getMessageInstance(message_id)
-        fields = [field.attrib for field in instance.findall("field")]
-        for field in fields:
-            field['plot'] = True  # QML에서 플롯팅 여부
-            if 'units' not in field:
-                field['units'] = ''
+            self.graphDataUpdated.emit(result)
 
-        meta_data = {
-            'id': message_id,
-            'name': instance.get("name"),
-            'description': instance.find("description").text,
-            'fields': fields
-        }
-        return meta_data
+    @Slot(result=list)
+    def getMessageFields(self):
+        return self.message_fields
 
     @Slot(dict)
     def sendPidValues(self, pid_gains: dict):
