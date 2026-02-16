@@ -83,20 +83,3 @@ cd NALDA
 git pull
 git submodule update
 ```
-
-## 빌드 방법
-
-### 빌드
-
-```bash
-pyinstaller main.spec
-```
-
-### 최초 빌드
-
-- pyinstaller로 처음 빌드하는 경우 (`main.spec` 없는 상태에서 만들 경우)
-- 아래 명령어 실행 후 datas 목록 등 포함할 파일 및 패키지 추가해야 함
-
-```bash
-pyinstaller --onefile --noconsole --icon='frontend/assets/app.ico' main.py
-```
