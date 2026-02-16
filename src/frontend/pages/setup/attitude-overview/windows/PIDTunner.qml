@@ -549,8 +549,8 @@ Rectangle {
                 };
 
                 // 백엔드로 PID 값 전송 (attitudeOverviewManager를 통해)
-                attitudeOverviewManager.sendPidValues(pidValues);
-                // console.log("PID 값 전송:", JSON.stringify(pidValues));
+                // attitudeOverviewManager.sendPidValues(pidValues);
+                console.log("PID 값 전송:", JSON.stringify(pidValues));
             }
         }
     }

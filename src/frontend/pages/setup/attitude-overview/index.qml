@@ -282,8 +282,12 @@ ColumnLayout {
                             radius: 8
                         }
 
-                        onClicked: {
-                            attitudeOverviewRoot.rollDirection *= -1;
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                attitudeOverviewRoot.rollDirection *= -1;
+                            }
                         }
                     }
 
@@ -298,8 +302,12 @@ ColumnLayout {
                             radius: 8
                         }
 
-                        onClicked: {
-                            attitudeOverviewRoot.pitchDirection *= -1;
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                attitudeOverviewRoot.pitchDirection *= -1;
+                            }
                         }
                     }
 
@@ -314,8 +322,32 @@ ColumnLayout {
                             radius: 8
                         }
 
-                        onClicked: {
-                            attitudeOverviewRoot.yawDirection *= -1;
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                attitudeOverviewRoot.yawDirection *= -1;
+                            }
+                        }
+                    }
+
+                    Button {
+                        id: pidTuningButton
+                        text: "PID 튜닝"
+
+                        background: Rectangle {
+                            implicitWidth: 100
+                            implicitHeight: 40
+                            color: pidTuningButton.down ? Qt.darker(Colors.green, 1.1) : Colors.green
+                            radius: 8
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                attitudeOverviewManager.showPidTunner();
+                            }
                         }
                     }
                 }
