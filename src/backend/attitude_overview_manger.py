@@ -3,6 +3,8 @@ import time
 from PySide6.QtCore import QObject, Signal, Slot
 from .MiniLink.lib.xmlHandler import XmlHandler
 
+from windows.pid_tunner_window import PIDTunnerWindow
+
 
 class AttitudeOverviewManager(QObject):
     messageUpdated = Signal(int, dict)  # 메시지 업데이트 시그널
@@ -17,6 +19,11 @@ class AttitudeOverviewManager(QObject):
 
         self.xmlHandler = XmlHandler()
         self.xmlHandler.loadMessageListFromXML({})
+
+        # # Location History 창을 관리하기 위한 변수
+        self.pid_tunner_window = PIDTunnerWindow(self)
+        self.pid_tunner_window.hide()
+        # self.pid_tunner_window.show()
 
     @Slot(int, dict)
     def get_data(self, message_id: int, data: dict):
@@ -62,3 +69,8 @@ class AttitudeOverviewManager(QObject):
         self.newPidGains.emit(250, angle_gains, True)
         time.sleep(0.1)
         self.newPidGains.emit(251, rate_gains, True)
+
+    @Slot()
+    def showPidTunner(self):
+        """PID Tunner 창을 띄우는 슬롯"""
+        self.pid_tunner_window.show()
