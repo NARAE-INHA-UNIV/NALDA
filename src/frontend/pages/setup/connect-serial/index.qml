@@ -245,7 +245,9 @@ ColumnLayout {
                             id: portComboBoxMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            onPressed: (mouse) => { mouse.accepted = false; }
+                            onPressed: mouse => {
+                                mouse.accepted = false;
+                            }
                         }
 
                         delegate: ItemDelegate {
@@ -384,7 +386,9 @@ ColumnLayout {
                         id: baudRateMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        onPressed: (mouse) => { mouse.accepted = false; }
+                        onPressed: mouse => {
+                            mouse.accepted = false;
+                        }
                     }
 
                     contentItem: Text {
@@ -625,6 +629,7 @@ ColumnLayout {
             connectSerialRoot.isConnected = true;
 
             // 연결된 보드, 포트, 보드레이트 설정
+            connectSerialRoot.connectionMode = "serial";
             connectSerialRoot.boardType = connection.is_px4 ? "px4" : "custom";
             portComboBox.currentIndex = connectSerialRoot.portList.findIndex(item => item.device === connection.port);
             baudRateComboBox.currentIndex = baudRateComboBox.model.findIndex(item => item === connection.baudrate);
@@ -635,6 +640,7 @@ ColumnLayout {
             connectSerialRoot.isConnected = true;
 
             // 연결된 UDP IP와 Port 설정
+            connectSerialRoot.connectionMode = "udp";
             ipTextInput.text = connection.udp_ip;
             udpPortTextInput.text = connection.udp_port.toString();
         }
