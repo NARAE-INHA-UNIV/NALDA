@@ -6,4 +6,4 @@
 
 - [Qt for Python: Examples](https://doc.qt.io/qtforpython-6/examples/index.html): 공식 문서 예제
 
-- [Google Material Icons](https://fonts.google.com/icons?icon.query=flight&icon.size=24&icon.color=%23e8eaed): 아이콘은 여기서 .svg로 다운로드
+- [Google Material Icons](https://fonts.google.com/icons?icon.query=flight&icon.size=24&icon.color=%23e8eaed): 아이콘은 여기서 .svg로 다운로드 (색상코드 `#E9EAED`)
