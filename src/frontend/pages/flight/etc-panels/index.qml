@@ -497,9 +497,11 @@ Rectangle {
                         }
 
                         Button {
+                            id: armBtn
                             Layout.fillWidth: true
                             height: 36
                             text: root.isArmed ? "Disarm" : "Arm"
+                            enabled: root.connected && (!root.isArmed || root.landedState === 1)
 
                             onClicked: {
                                 root.pendingCommand = text;
@@ -510,9 +512,9 @@ Rectangle {
                             }
 
                             background: Rectangle {
-                                color: parent.down ? "#FFB300" : (root.isArmed ? "#3e1b1b" : "#2a2a2a")
+                                color: parent.down ? "#FFB300" : (parent.enabled ? "#2a2a2a" : "#1a1a1a")
                                 radius: 4
-                                border.color: parent.down ? "#FFB300" : (root.isArmed ? "#f44336" : "#333")
+                                border.color: parent.down ? "#FFB300" : (parent.enabled ? "#333" : "#1a1a1a")
                                 border.width: 1
                             }
 
@@ -527,9 +529,11 @@ Rectangle {
                         }
 
                         Button {
+                            id: takeoffBtn
                             Layout.fillWidth: true
                             height: 36
                             text: "Takeoff"
+                            enabled: root.connected && root.landedState !== 2 && root.landedState !== 3
 
                             onClicked: {
                                 root.pendingCommand = text;
@@ -540,9 +544,9 @@ Rectangle {
                             }
 
                             background: Rectangle {
-                                color: parent.down ? "#FFB300" : "#2a2a2a"
+                                color: parent.down ? "#FFB300" : (parent.enabled ? "#2a2a2a" : "#1a1a1a")
                                 radius: 4
-                                border.color: parent.down ? "#FFB300" : "#333"
+                                border.color: parent.down ? "#FFB300" : (parent.enabled ? "#333" : "#1a1a1a")
                                 border.width: 1
                             }
 
@@ -557,9 +561,11 @@ Rectangle {
                         }
 
                         Button {
+                            id: landBtn
                             Layout.fillWidth: true
                             height: 36
                             text: "Land"
+                            enabled: root.connected && root.isArmed && root.landedState !== 1 && root.landedState !== 4
 
                             onClicked: {
                                 root.pendingCommand = text;
@@ -570,9 +576,9 @@ Rectangle {
                             }
 
                             background: Rectangle {
-                                color: parent.down ? "#FFB300" : "#2a2a2a"
+                                color: parent.down ? "#FFB300" : (parent.enabled ? "#2a2a2a" : "#1a1a1a")
                                 radius: 4
-                                border.color: parent.down ? "#FFB300" : "#333"
+                                border.color: parent.down ? "#FFB300" : (parent.enabled ? "#333" : "#1a1a1a")
                                 border.width: 1
                             }
 
