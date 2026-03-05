@@ -429,14 +429,14 @@ class SerialManager(QObject):
         except Exception as e:
             print(f"메시지 전송 실패: {str(e)}")
 
-    @Slot(bool)
+    @Slot(bool, result=bool)
     def sendArmCommand(self, arm: bool):
         """
         드론 ARM/DISARM 명령 전송
         """
         if not self.mavlink:
             print("MAVLink 연결이 없습니다.")
-            return
+            return False
 
         try:
             # 먼저 Guided 모드로 변경 (arm 시에만)
@@ -464,25 +464,37 @@ class SerialManager(QObject):
             ack = self.mavlink.recv_match(type='COMMAND_ACK', blocking=True, timeout=3)
             if ack:
                 print(f"ARM 명령 응답: result={ack.result} (0=성공, 1=임시거부, 2=거부, 3=지원안함, 4=실패, 5=진행중)")
+                return ack.result == 0
+            return False
         except Exception as e:
             print(f"ARM 명령 전송 실패: {str(e)}")
+            return False
 
     @Slot(float)
     def sendTakeoffCommand(self, altitude: float):
         """
-        이륙 모드로 변경 (AUTO.TAKEOFF)
+        자동 ARM 후 이륙 모드로 변경 (AUTO.TAKEOFF)
         """
         if not self.mavlink:
             print("MAVLink 연결이 없습니다.")
             return
 
-        # PX4 AUTO.TAKEOFF 모드로 전환
+        # 1. 자동 ARM 시도
+        print("이륙 전 자동 ARM 시도 중...")
+        if not self.sendArmCommand(True):
+            print("자동 ARM 실패로 이륙 중단")
+            return
+
+        print("ARM 성공, 1초 대기 후 이륙 모드로 전환합니다.")
+        time.sleep(1.0)
+
+        # 2. PX4 AUTO.TAKEOFF 모드로 전환
         # Custom mode = (sub_mode << 24) | (main_mode << 16)
         # AUTO(4).TAKEOFF(2) = (2 << 24) | (4 << 16) = 0x02040000
         custom_mode = (2 << 24) | (4 << 16)  # 33685504
 
         try:
-            # AUTO.TAKEOFF 모드로 변경 (PX4 custom_mode = 10)
+            # AUTO.TAKEOFF 모드로 변경
             self.mavlink.mav.set_mode_send(
                 self.mavlink.target_system,
                 mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
