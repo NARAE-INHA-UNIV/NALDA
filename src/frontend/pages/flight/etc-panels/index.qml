@@ -211,6 +211,11 @@ Rectangle {
     Connections {
         target: serialManager
 
+        function onCommandResult(command, success, message) {
+            console.log("[CommandResult] " + command + " - Success: " + success + ", Message: " + message);
+            // 만약 나중에 Toast 알림 기능이 추가된다면 이 부분에서 호출하면 됩니다.
+        }
+
         function onMessageUpdated(msgId, msg) {
             // console.log("Received MAVLink Msg ID:", msgId);
             // Heartbeat (ID 0)

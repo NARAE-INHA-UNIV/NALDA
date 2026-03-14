@@ -23,6 +23,18 @@ ColumnLayout {
         });
     }
 
+    // --- Connections to Backend ---
+    Connections {
+        target: serialManager
+
+        function onConnectionResult(success, message) {
+            console.log("[ConnectionResult] Success: " + success + ", Message: " + message);
+            connectSerialRoot.isConnected = success;
+            connectSerialRoot.connectionStatusVisible = true;
+            connectSerialRoot.connectionLoading = false;
+        }
+    }
+
     Text {
         text: "보드 연결"
         color: Colors.textPrimary
@@ -572,16 +584,14 @@ ColumnLayout {
                                 var is_px4 = connectSerialRoot.boardType === "px4";
                                 var device = portComboBox.model[portComboBox.currentIndex].device;
                                 var baudrate = baudRateComboBox.currentValue;
-                                connectSerialRoot.isConnected = serialManager.connectSerial(is_px4, device, baudrate);
+                                serialManager.connectSerial(is_px4, device, baudrate);
                             } else if (connectSerialRoot.connectionMode === "udp") {
                                 // UDP 연결
                                 var udp_ip = ipTextInput.text;
                                 var udp_port = parseInt(udpPortTextInput.text);
-                                connectSerialRoot.isConnected = serialManager.connectUDP(udp_ip, udp_port);
+                                serialManager.connectUDP(udp_ip, udp_port);
                             }
-
-                            connectSerialRoot.connectionStatusVisible = true;
-                            connectSerialRoot.connectionLoading = false; // 로딩 끝
+                            // 로딩 및 연결 상태 업데이트는 onConnectionResult에서 처리합니다.
                         }
                     }
                 }
