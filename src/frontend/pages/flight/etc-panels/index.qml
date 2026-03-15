@@ -207,13 +207,24 @@ Rectangle {
     // Constants
     readonly property int timeoutMs: 3000
 
+    // // Preview helper: open the fail dialog immediately when this panel loads.
+    // Component.onCompleted: {
+    //     root.commandErrorTitle = "command FAIL";
+    //     root.commandErrorMessage = "message";
+    //     commandErrorDialog.open();
+    // }
+
     // --- Connections to Backend ---
     Connections {
         target: serialManager
 
         function onCommandResult(command, success, message) {
             console.log("[CommandResult] " + command + " - Success: " + success + ", Message: " + message);
-            // 만약 나중에 Toast 알림 기능이 추가된다면 이 부분에서 호출하면 됩니다.
+            if (!success) {
+                root.commandErrorTitle = command + " FAIL";
+                root.commandErrorMessage = message;
+                commandErrorDialog.open();
+            }
         }
 
         function onMessageUpdated(msgId, msg) {
@@ -820,6 +831,8 @@ Rectangle {
     // 컨트롤 명령 확인용
     property string pendingCommand: ""
     property var pendingCommandFunc: null
+    property string commandErrorTitle: ""
+    property string commandErrorMessage: ""
 
     // 모드 선택 모달
     Dialog {
@@ -1076,6 +1089,103 @@ Rectangle {
                             color: parent.down ? "#2e7d32" : Colors.green
                             radius: 8
                             border.color: Colors.green
+                            border.width: 1
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            font.pixelSize: 13
+                            font.weight: 600
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 컨트롤 명령 실패 다이얼로그
+    Dialog {
+        id: commandErrorDialog
+        title: ""
+        modal: true
+        focus: true
+        padding: 0
+        topPadding: 0
+
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        background: Rectangle {
+            color: Colors.gray900
+            radius: 8
+        }
+
+        contentItem: Column {
+            width: 270
+            spacing: 0
+
+            Rectangle {
+                width: parent.width
+                height: 70
+                color: Colors.gray900
+                radius: 8
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
+                    anchors.topMargin: 18
+                    text: root.commandErrorTitle
+                    color: "#ffffff"
+                    font.pixelSize: 16
+                    font.bold: true
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
+                    anchors.topMargin: 48
+                    text: root.commandErrorMessage
+                    color: "#e0e0e0"
+                    font.pixelSize: 14
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 62
+                color: Colors.gray900
+                radius: 8
+
+                RowLayout {
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: 15
+                    anchors.bottomMargin: 8
+
+                    Button {
+                        Layout.preferredWidth: 80
+                        Layout.preferredHeight: 46
+                        text: "확인"
+
+                        onClicked: {
+                            commandErrorDialog.close();
+                        }
+
+                        background: Rectangle {
+                            color: parent.down ? "#b71c1c" : "#d32f2f"
+                            radius: 8
+                            border.color: "#d32f2f"
                             border.width: 1
                         }
 
