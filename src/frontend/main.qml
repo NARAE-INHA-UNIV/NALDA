@@ -72,4 +72,7 @@ Rectangle {
             }
         }
     }
+
+    // STATUSTEXT (#253) ALERT
+    Components.StatusTextAlert {}
 }
