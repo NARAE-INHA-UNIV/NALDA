@@ -215,6 +215,8 @@ Rectangle {
     // }
 
     // --- Connections to Backend ---
+
+    // 명령 결과 수신 (serialManager)
     Connections {
         target: serialManager
 
@@ -226,49 +228,33 @@ Rectangle {
                 commandErrorDialog.open();
             }
         }
+    }
 
-        function onMessageUpdated(msgId, msg) {
-            // console.log("Received MAVLink Msg ID:", msgId);
-            // Heartbeat (ID 0)
-            if (msgId === 0) {
-                root.connected = true;
-                root.lastHeartbeatTime = new Date().getTime();
+    // 비행 상태 데이터 수신 (flightStatusManager)
+    Connections {
+        target: flightStatusManager
 
-                var baseMode = msg.base_mode;
-                root.isArmed = (baseMode & 128) !== 0;
+        function onHeartbeatReceived(isArmed, baseMode, customMode) {
+            root.connected = true;
+            root.lastHeartbeatTime = new Date().getTime();
+            root.isArmed = isArmed;
+            updateState();
+        }
 
-                updateState();
-            }
+        function onBatteryChanged(voltage, current, remaining) {
+            root.batteryVoltage  = voltage;
+            root.batteryCurrent  = current;
+            root.batteryRemaining = remaining;
+        }
 
-            // SYS_STATUS (ID 1)
-            if (msgId === 1) {
-                root.batteryVoltage = msg.voltage_battery / 1000.0;
-                root.batteryCurrent = msg.current_battery / 100.0;
+        function onMotorValuesChanged(m1, m2, m3, m4) {
+            root.motorValues = [m1, m2, m3, m4];
+        }
 
-                // -1 means invalid/unknown in MAVLink, treat as 0 for graph
-                var rem = msg.battery_remaining;
-                if (rem < 0)
-                    rem = 0;
-                if (rem > 100)
-                    rem = 100;
-                root.batteryRemaining = rem;
-            }
-
-            // SERVO_OUTPUT_RAW (ID 36)
-            if (msgId === 36) {
-                var m1 = msg.servo1_raw;
-                var m2 = msg.servo2_raw;
-                var m3 = msg.servo3_raw;
-                var m4 = msg.servo4_raw;
-                root.motorValues = [m1, m2, m3, m4];
-            }
-
-            // EXTENDED_SYS_STATE (ID 245)
-            if (msgId === 245) {
-                root.vtolStateId = msg.vtol_state;
-                root.landedState = msg.landed_state;
-                updateState();
-            }
+        function onSystemStateChanged(vtolState, landedState) {
+            root.vtolStateId  = vtolState;
+            root.landedState  = landedState;
+            updateState();
         }
     }
 

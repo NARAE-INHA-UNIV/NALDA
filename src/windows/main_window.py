@@ -13,6 +13,7 @@ from backend.resource_manager import ResourceManager
 from backend.pfd_maganer import PFDManager
 from backend.parameter_setting_manager import ParameterSettingManager
 from backend.status_text_manager import StatusTextManager
+from backend.flight_status_manager import FlightStatusManager
 
 from backend.utils import resource_path
 
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow):
         self.resource_manager = ResourceManager()
         self.parameter_setting_manager = ParameterSettingManager()
         self.status_text_manager = StatusTextManager()
+        self.flight_status_manager = FlightStatusManager()
 
         # 독 전용 컨텍스트
         self.pfd_manager = PFDManager()
@@ -113,8 +115,9 @@ class MainWindow(QMainWindow):
         self.serial_manager.messageUpdated.connect(self.sensor_graph_manager.get_data)
         self.serial_manager.messageUpdated.connect(self.attitude_overview_manager.get_data)
         self.serial_manager.messageUpdated.connect(self.pfd_manager.get_data)
-        self.serial_manager.messageUpdated.connect(self.gps_manager.get_data)  # gps도 연결 필요
+        self.serial_manager.messageUpdated.connect(self.gps_manager.get_data)
         self.serial_manager.messageUpdated.connect(self.status_text_manager.get_data)
+        self.serial_manager.messageUpdated.connect(self.flight_status_manager.get_data)
 
         # send 이벤트
         self.attitude_overview_manager.newPidGains.connect(self.serial_manager.send_message)
@@ -211,6 +214,7 @@ class MainWindow(QMainWindow):
             managers=[
                 ('gpsManager', self.gps_manager),
                 ('serialManager', self.serial_manager),
+                ('flightStatusManager', self.flight_status_manager),
             ]
         )
         self.dock_bottom_right.setWidget(widget_bottom_right)
