@@ -201,6 +201,10 @@ Rectangle {
     property real batteryVoltage: 0.0  // V
     property real batteryCurrent: 0.0  // A
 
+    // Flight Time tracking
+    property int flightTimeSeconds: 0
+    property string flightTimeStr: "00:00"
+
     // Motors (1000~2000 us) -> Normalized 0.0~1.0
     property var motorValues: [0, 0, 0, 0]
 
@@ -255,6 +259,13 @@ Rectangle {
             root.vtolStateId  = vtolState;
             root.landedState  = landedState;
             updateState();
+        }
+
+        function onFlightTimeChanged(seconds) {
+            root.flightTimeSeconds = seconds;
+            var m = Math.floor(seconds / 60);
+            var s = seconds % 60;
+            root.flightTimeStr = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
         }
     }
 
@@ -764,6 +775,57 @@ Rectangle {
                                 font.pixelSize: 11
                                 Layout.alignment: Qt.AlignHCenter
                             }
+                        }
+
+                        Item {
+                            Layout.fillHeight: true
+                        }
+                    }
+
+                    // Vertical Divider
+                    Rectangle {
+                        width: 1
+                        Layout.fillHeight: true
+                        Layout.topMargin: 20
+                        Layout.bottomMargin: 20
+                        color: "#333"
+                    }
+
+                    // Far Right: Flight Time
+                    ColumnLayout {
+                        Layout.fillHeight: true
+                        Layout.rightMargin: 10
+
+                        Text {
+                            text: "TIME"
+                            color: "#808080"
+                            font.pixelSize: 11
+                            font.bold: true
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        Item {
+                            Layout.fillHeight: true
+                        }
+
+                        ColumnLayout {
+                            Layout.alignment: Qt.AlignCenter
+                            spacing: 6
+
+                            Text {
+                                text: root.flightTimeStr
+                                color: "white"
+                                font.pixelSize: 24
+                                font.bold: true
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                            
+                            // Text {
+                            //     text: "MM:SS"
+                            //     color: "#666666"
+                            //     font.pixelSize: 11
+                            //     Layout.alignment: Qt.AlignHCenter
+                            // }
                         }
 
                         Item {

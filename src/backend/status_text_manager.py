@@ -25,8 +25,8 @@ class StatusTextManager(QObject):
         print(f"Received STATUSTEXT: {msg}")
 
         severity = msg.get("severity", 6)
-        if severity > 4:
-            return
+        # if severity > 4:
+        #     return
 
         text = msg.get("text", "").replace("\x00", "").strip()
         severity_name = _MAV_SEVERITY.get(severity, "UNKNOWN")
