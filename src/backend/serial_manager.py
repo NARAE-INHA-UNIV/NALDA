@@ -407,9 +407,13 @@ class SerialManager(QObject):
                 for msg_name, msg_def in mavlink_messages.items():
                     if '[' in msg_name:
                         continue
-                    if hasattr(msg_def, 'get_msgId') and hasattr(msg_def, 'fieldnames'):
-                        if msg_def.get_msgId() == 0:
+                    if hasattr(msg_def, 'get_msgId') and hasattr(msg_def, 'fieldnames') and hasattr(msg_def, 'get_type'):
+                        # pymavlink은 동일 메시지를 여러 키('GPS_RAW_INT', 'HOME' 등)로 저장하는 경우가 있음
+                        # dict 키(msg_name)와 메시지 자신의 타입명이 다른 synthetic alias는 건너뜀
+                        if msg_name != msg_def.get_type():
                             continue
+                        # if msg_def.get_msgId() == 0:
+                        #     continue
                         message_list.append({
                             'id': msg_def.get_msgId(),
                             'name': msg_name,
