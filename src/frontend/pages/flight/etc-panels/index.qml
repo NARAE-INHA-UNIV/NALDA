@@ -670,6 +670,8 @@ Rectangle {
                                 model: 4
                                 ColumnLayout {
                                     spacing: 6
+                                    Layout.preferredWidth: 36
+
                                     // Bar
                                     Rectangle {
                                         width: 28
@@ -677,6 +679,7 @@ Rectangle {
                                         color: "#1a1a1a"
                                         radius: 3
                                         border.color: "#333"
+                                        Layout.alignment: Qt.AlignHCenter
 
                                         Rectangle {
                                             anchors.bottom: parent.bottom
@@ -696,6 +699,7 @@ Rectangle {
                                         font.pixelSize: 13
                                         font.bold: true
                                         Layout.alignment: Qt.AlignHCenter
+                                        horizontalAlignment: Text.AlignHCenter
                                     }
                                     // Motor Label
                                     Text {
@@ -811,6 +815,7 @@ Rectangle {
                         ColumnLayout {
                             Layout.alignment: Qt.AlignCenter
                             spacing: 6
+                            Layout.preferredWidth: 80
 
                             Text {
                                 text: root.flightTimeStr
@@ -818,6 +823,7 @@ Rectangle {
                                 font.pixelSize: 24
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
+                                horizontalAlignment: Text.AlignHCenter
                             }
                             
                             // Text {
