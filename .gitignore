@@ -11,3 +11,7 @@ src/.env
 # 빌드 파일
 dist/
 build/
+
+# IDE 설정 파일
+.vscode/
+.idea/
