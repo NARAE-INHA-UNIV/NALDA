@@ -1,5 +1,8 @@
-from PySide6.QtCore import QObject, Signal, Slot, QTimer
 import time
+
+from PySide6.QtCore import QObject, Signal, Slot, QTimer
+
+
 class FlightStatusManager(QObject):
     """
     드론 비행 상태 데이터를 처리하고 QML과 통신하는 컨트롤러
@@ -49,14 +52,14 @@ class FlightStatusManager(QObject):
             return
 
         if msg_id == 0:   # HEARTBEAT
-            base_mode   = data.get("base_mode", 0)
+            base_mode = data.get("base_mode", 0)
             custom_mode = data.get("custom_mode", 0)
-            is_armed    = bool(base_mode & 128)
+            is_armed = bool(base_mode & 128)
             self.heartbeatReceived.emit(is_armed, base_mode, custom_mode)
 
         elif msg_id == 1:  # SYS_STATUS
-            voltage   = data.get("voltage_battery", 0) / 1000.0  # mV → V
-            current   = data.get("current_battery", 0) / 100.0   # cA → A
+            voltage = data.get("voltage_battery", 0) / 1000.0  # mV → V
+            current = data.get("current_battery", 0) / 100.0   # cA → A
             remaining = max(0, min(100, data.get("battery_remaining", 0)))
             self.batteryChanged.emit(voltage, current, remaining)
 
@@ -74,7 +77,7 @@ class FlightStatusManager(QObject):
                 data.get("vtol_state",   0),
                 landed_state,
             )
-            
+
             # Flight time tracking based on landed_state
             # 1: On Ground, 2: In Air, 3: Takeoff, 4: Landing
             if landed_state in (2, 3, 4):
