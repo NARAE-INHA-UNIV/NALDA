@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NALDA Mission Plan Map</title>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=5c88f951bc6fb7e2956f7e6f1ec9306c">
+  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <script>
+    var map = new kakao.maps.Map(document.getElementById('map'), {
+      center: new kakao.maps.LatLng(37.450767, 126.657016),
+      level: 4
+    });
+
+    var markers = [];
+    var polyline = null;
+    var overlays = [];
+
+    function clearWaypoints() {
+      markers.forEach(function (m) { m.setMap(null); });
+      overlays.forEach(function (o) { o.setMap(null); });
+      if (polyline) { polyline.setMap(null); polyline = null; }
+      markers = [];
+      overlays = [];
+    }
+
+    function updateWaypoints(waypointsJson) {
+      clearWaypoints();
+
+      var waypoints = typeof waypointsJson === 'string'
+        ? JSON.parse(waypointsJson)
+        : waypointsJson;
+
+      if (!waypoints || waypoints.length === 0) return;
+
+      var path = [];
+
+      waypoints.forEach(function (wp, i) {
+        var latlng = new kakao.maps.LatLng(wp.latitude, wp.longitude);
+        path.push(latlng);
+
+        var marker = new kakao.maps.Marker({ position: latlng, map: map });
+        markers.push(marker);
+
+        var label = document.createElement('div');
+        label.style.cssText = [
+          'background: #2196F3',
+          'color: #fff',
+          'border: 2px solid #fff',
+          'border-radius: 50%',
+          'width: 28px',
+          'height: 28px',
+          'line-height: 24px',
+          'text-align: center',
+          'font-size: 12px',
+          'font-weight: bold',
+          'box-shadow: 0 2px 6px rgba(0,0,0,.5)',
+          'cursor: default',
+          'user-select: none'
+        ].join(';');
+        label.textContent = i + 1;
+
+        var overlay = new kakao.maps.CustomOverlay({
+          position: latlng,
+          content: label,
+          yAnchor: 1.4,
+          map: map
+        });
+        overlays.push(overlay);
+      });
+
+      polyline = new kakao.maps.Polyline({
+        path: path,
+        strokeWeight: 3,
+        strokeColor: '#2196F3',
+        strokeOpacity: 0.9,
+        strokeStyle: 'solid',
+        map: map
+      });
+    }
+
+    function focusWaypoints() {
+      if (markers.length === 0) return;
+      var bounds = new kakao.maps.LatLngBounds();
+      markers.forEach(function (m) { bounds.extend(m.getPosition()); });
+      map.setBounds(bounds, 80);
+    }
+  </script>
+</body>
+
+</html>

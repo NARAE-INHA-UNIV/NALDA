@@ -79,65 +79,6 @@ Rectangle {
                     }
                 }
             }
-
-            // // 드론 이동 경로 (실선)
-            // MapPolyline {
-            //     path: gpsManager ? gpsManager.pathCoordinates : []
-            //     line.color: "#FF0000" // 빨간색
-            //     line.width: 3
-            // }
-
-            // // 과거 경로 지점들 (빨간 원 + 숫자)
-            // MapItemView {
-            //     // 현재 위치(마지막 점)를 제외한 모든 점을 모델로 사용
-            //     model: gpsManager ? gpsManager.pathCoordinates.slice(0, gpsManager.pathCoordinates.length - 1) : []
-            //     delegate: MapQuickItem {
-            //         coordinate: modelData
-            //         anchorPoint.x: 10
-            //         anchorPoint.y: 10
-            //         sourceItem: Rectangle {
-            //             width: 20
-            //             height: 20
-            //             radius: 10
-            //             color: "red"
-            //             border.color: "white"
-            //             border.width: 1
-            //             Text {
-            //                 anchors.centerIn: parent
-            //                 text: index + 1 // 경로 순서 (1부터 시작)
-            //                 color: "white"
-            //                 font.bold: true
-            //                 font.pixelSize: 10
-            //             }
-            //         }
-            //     }
-            // }
-
-            // // 드론 현재 위치 마커 (초록 원 + 숫자)
-            // MapQuickItem {
-            //     id: droneMarker
-            //     anchorPoint.x: 15
-            //     anchorPoint.y: 15
-            //     // pathData가 비어있지 않으면 가장 마지막 좌표를 사용
-            //     coordinate: (gpsManager && gpsManager.pathCoordinates.length > 0) ? gpsManager.pathCoordinates[gpsManager.pathCoordinates.length - 1] : QtPositioning.coordinate(37.450767, 126.657016)
-
-            //     sourceItem: Rectangle {
-            //         width: 30
-            //         height: 30
-            //         color: "green" // 현재 위치는 초록색
-            //         radius: 15
-            //         border.color: "white"
-            //         border.width: 2
-
-            //         Text {
-            //             anchors.centerIn: parent
-            //             text: gpsManager ? gpsManager.pathCoordinates.length : 0 // 경로 순서
-            //             color: "white"
-            //             font.bold: true
-            //             font.pixelSize: 14
-            //         }
-            //     }
-            // }
         }
 
         // GPS 연결 상태 표시
@@ -195,17 +136,5 @@ Rectangle {
                 }
             }
         }
-
-        // // 경로 기록 조회 버튼
-        // Button {
-        //     anchors.bottom: parent.bottom
-        //     anchors.right: parent.right
-        //     anchors.margins: 10
-
-        //     text: "경로 기록 조회"
-        //     onClicked: {
-        //         gpsManager.showLocationHistory();
-        //     }
-        // }
     }
 }

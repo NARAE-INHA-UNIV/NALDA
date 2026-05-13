@@ -14,6 +14,7 @@ from backend.pfd_maganer import PFDManager
 from backend.parameter_setting_manager import ParameterSettingManager
 from backend.status_text_manager import StatusTextManager
 from backend.flight_status_manager import FlightStatusManager
+from backend.plan_map_server import PlanMapServer
 
 from backend.utils import resource_path
 
@@ -107,6 +108,7 @@ class MainWindow(QMainWindow):
         self.parameter_setting_manager = ParameterSettingManager()
         self.status_text_manager = StatusTextManager()
         self.flight_status_manager = FlightStatusManager()
+        self.plan_map_server = PlanMapServer()
 
         # 독 전용 컨텍스트
         self.pfd_manager = PFDManager()
@@ -138,6 +140,7 @@ class MainWindow(QMainWindow):
         context.setContextProperty("parameterSettingManager", self.parameter_setting_manager)
         context.setContextProperty("yourTreeModel", self.parameter_setting_manager.tree_model)
         context.setContextProperty("statusTextManager", self.status_text_manager)
+        context.setContextProperty("planMapServer", self.plan_map_server)
 
         # 전역 스타일 설정
         styles_path = resource_path("frontend/styles")
