@@ -17,43 +17,43 @@ Rectangle {
     property var stateList: [
         {
             id: 1,
-            text: 'Disconnected',
+            text: 'DISCONNECTED',
             bgColor: Colors.gray800,
             borderColor: Colors.gray200
         },
         {
             id: 2,
-            text: 'Disarmed',
+            text: 'DISARMED',
             bgColor: '#332b00',
             borderColor: '#ffc107'
         },
         {
             id: 3,
-            text: 'Armed',
+            text: 'ARMED',
             bgColor: '#1b3e1b',
             borderColor: '#4caf50'
         },
         {
             id: 4,
-            text: 'In Air',
+            text: 'IN AIR',
             bgColor: '#1b3e1b',
             borderColor: '#4caf50'
         },
         {
             id: 5,
-            text: 'Takeoff',
+            text: 'TAKEOFF',
             bgColor: '#1b3e1b',
             borderColor: '#4caf50'
         },
         {
             id: 6,
-            text: 'Landing',
+            text: 'LANDING',
             bgColor: '#1b3e1b',
             borderColor: '#4caf50'
         },
         {
             id: 7,
-            text: 'Connection Lost',
+            text: 'CONNECTION LOST',
             bgColor: '#3e1b1b',
             borderColor: '#f44336'
         },
